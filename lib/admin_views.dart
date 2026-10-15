@@ -3,6 +3,7 @@ import 'admin_data.dart';
 import 'payment_view.dart';
 import 'id_card_view.dart';
 import 'whatsapp_reminder_view.dart';
+import 'fee_receipt_view.dart';
 
 const blue = Color(0xFF1769AA);
 const navy = Color(0xFF102A43);
@@ -300,6 +301,26 @@ void showSeatOccupantDetails(BuildContext context, int seatNo, {bool isAdmin = f
                             onStateChange?.call();
                           },
                         );
+                      },
+                    ),
+                  ),
+                ],
+                if (member.feeStatus == 'Paid') ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: green,
+                        side: const BorderSide(color: green),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      icon: const Icon(Icons.receipt_long, size: 16),
+                      label: const Text('View Official Fee Receipt (फीस रसीद)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        showOfficialFeeReceiptSheet(context, member: member);
                       },
                     ),
                   ),
@@ -764,22 +785,46 @@ Widget _buildFeeList(BuildContext context, List<MemberRecord> list, StateSetter 
                     ],
                   )
                 else
-                  InkWell(
-                    onTap: () {
-                      setSheetState(() {
-                        m.feeStatus = 'Pending';
-                      });
-                      onStateChange?.call();
-                    },
-                    child: const Text(
-                      'Mark Due',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blueGrey,
-                        decoration: TextDecoration.underline,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      InkWell(
+                        onTap: () => showOfficialFeeReceiptSheet(context, member: m),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+                          decoration: BoxDecoration(
+                            color: navy,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.receipt_long, size: 11, color: Colors.white),
+                              SizedBox(width: 3),
+                              Text('Receipt', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 6),
+                      InkWell(
+                        onTap: () {
+                          setSheetState(() {
+                            m.feeStatus = 'Pending';
+                          });
+                          onStateChange?.call();
+                        },
+                        child: const Text(
+                          'Mark Due',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blueGrey,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
               ],
             ),
@@ -864,13 +909,14 @@ Widget _buildTransactionsList(BuildContext context) {
                     ],
                   ),
                 ),
-                TextButton(
-                  onPressed: () => showPaymentSuccessReceiptDialog(context, txn: t),
+                TextButton.icon(
+                  onPressed: () => showOfficialFeeReceiptSheet(context, transaction: t),
                   style: TextButton.styleFrom(
                     visualDensity: VisualDensity.compact,
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                   ),
-                  child: const Text('View Slip >', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: blue)),
+                  icon: const Icon(Icons.receipt_long, size: 14, color: blue),
+                  label: const Text('Receipt Slip >', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: blue)),
                 ),
               ],
             ),
@@ -1100,114 +1146,7 @@ Widget _detailRow(String label, String value, {Color? valueColor}) {
 // ========================================================
 void showMemberReceiptSheet(BuildContext context) {
   final member = AdminData.getMemberById('KL-0248') ?? AdminData.members.first; // Aarav Sharma
-  showModalBottomSheet(
-    context: context,
-    showDragHandle: true,
-    backgroundColor: Colors.white,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
-    builder: (ctx) => Padding(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: green.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.receipt_long, color: green, size: 24),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('My Membership Receipt', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: navy)),
-                    Text('Krishna Library • Official Fee Slip', style: TextStyle(fontSize: 12, color: Colors.blueGrey)),
-                  ],
-                ),
-              ),
-              IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: Column(
-              children: [
-                _detailRow('Member Name:', member.name),
-                const Divider(height: 14),
-                _detailRow('Member ID:', member.id),
-                const Divider(height: 14),
-                _detailRow('Assigned Desk:', 'Seat ${member.seatNo.toString().padLeft(2, '0')} (${member.shift.contains("Full Day") ? "Full Day" : "Half Day"})'),
-                const Divider(height: 14),
-                _detailRow('Plan:', member.plan),
-                const Divider(height: 14),
-                _detailRow('Amount Paid:', '₹${member.amount}', valueColor: green),
-                const Divider(height: 14),
-                _detailRow('Payment Status:', member.feeStatus == 'Paid' ? 'PAID (सत्यापित)' : 'FEE PENDING (बकाया)', valueColor: member.feeStatus == 'Paid' ? green : red),
-                const Divider(height: 14),
-                _detailRow('Valid Until:', member.dueDate),
-                const Divider(height: 14),
-                _detailRow('Payment Mode:', member.paymentMode),
-                const Divider(height: 14),
-                _detailRow('Transferred To:', '${AdminData.adminName} (Library Admin)'),
-                const Divider(height: 14),
-                _detailRow('Admin UPI ID:', AdminData.adminUpiId),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: green,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  icon: const Icon(Icons.qr_code_scanner, size: 18),
-                  label: const Text('Pay / Renew Fees Online', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    showFeePaymentSheet(context);
-                  },
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                flex: 2,
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: navy,
-                    side: const BorderSide(color: Color(0xFFCBD5E1)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Close', style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    ),
-  );
+  showOfficialFeeReceiptSheet(context, member: member);
 }
 
 // ========================================================
