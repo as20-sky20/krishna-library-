@@ -302,7 +302,7 @@ class _KrishnaAiChatModalState extends State<_KrishnaAiChatModal> {
                   controller: keyController,
                   obscureText: true,
                   decoration: InputDecoration(
-                    hintText: 'Paste AIzaSy... key here',
+                    hintText: 'Paste Gemini API Key (starts with AQ. or AIza...)',
                     hintStyle: const TextStyle(fontSize: 12),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -329,11 +329,11 @@ class _KrishnaAiChatModalState extends State<_KrishnaAiChatModal> {
                   child: const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('💡 फ्री API Key पाने का तरीका (30 सेकंड):', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: navy)),
+                      Text('💡 फ्री Gemini API Key (30 सेकंड में लें):', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: navy)),
                       SizedBox(height: 2),
                       Text('1. ब्राउज़र में खोलें: aistudio.google.com/app/apikey', style: TextStyle(fontSize: 10, color: Colors.blueGrey)),
-                      Text('2. Google से लॉगिन करें और "Create API Key" दबाएं।', style: TextStyle(fontSize: 10, color: Colors.blueGrey)),
-                      Text('3. की (Key) कॉपी करके यहाँ पेस्ट करें। बिल्कुल मुफ्त!', style: TextStyle(fontSize: 10, color: Colors.blueGrey)),
+                      Text('2. "Create API key in new project" (नया प्रोजेक्ट) चुनें।', style: TextStyle(fontSize: 10, color: Colors.blueGrey)),
+                      Text('3. मिलने वाली Key (AQ. या AIza से शुरू) यहाँ पेस्ट करें।', style: TextStyle(fontSize: 10, color: Colors.blueGrey)),
                     ],
                   ),
                 ),
@@ -390,7 +390,7 @@ class _KrishnaAiChatModalState extends State<_KrishnaAiChatModal> {
                           statusMsg = 'सफल! Gemini Flash API कनेक्ट हो गया ✓';
                           statusColor = green;
                         } else {
-                          statusMsg = 'कनेक्शन असफल। Google AI Studio (aistudio.google.com) से AIzaSy... वाली Key लें।';
+                          statusMsg = 'Google ने Key अस्वीकार की। कृपया aistudio.google.com पर "Create in new project" चुनकर ताज़ा Key बनाएं।';
                           statusColor = red;
                         }
                       });

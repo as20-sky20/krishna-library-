@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'file_picker_helper.dart';
 import 'study_data.dart';
 import 'video_data.dart';
 import 'video_views.dart';
+import 'whatsapp_url_helper.dart';
 
 class DocumentReaderScreen extends StatefulWidget {
   final StudyDocument document;
@@ -222,6 +224,95 @@ class _DocumentReaderScreenState extends State<DocumentReaderScreen> {
                           ),
                         ],
                       ),
+                      if (doc.pdfUrl != null && doc.pdfUrl!.trim().isNotEmpty) ...[
+                        const SizedBox(height: 14),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF161F2E) : const Color(0xFFFFF5F5),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFE16D5A).withValues(alpha: 0.3)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.picture_as_pdf, color: Color(0xFFE16D5A), size: 20),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      doc.localFileName ?? 'Attached PDF Document',
+                                      style: TextStyle(
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: textColor,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  if (doc.localFileSize != null)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFE16D5A).withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        doc.localFileSize!,
+                                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFE16D5A)),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFFE16D5A),
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(vertical: 10),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                        elevation: 0,
+                                      ),
+                                      icon: const Icon(Icons.open_in_new, size: 16),
+                                      label: const Text(
+                                        'Open PDF (फाइल देखें)',
+                                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                      ),
+                                      onPressed: () => WhatsAppLauncher.openUrl(doc.pdfUrl!),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: const Color(0xFFE16D5A),
+                                        side: const BorderSide(color: Color(0xFFE16D5A)),
+                                        padding: const EdgeInsets.symmetric(vertical: 10),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      ),
+                                      icon: const Icon(Icons.download, size: 16),
+                                      label: const Text(
+                                        'Download (डाउनलोड)',
+                                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                      ),
+                                      onPressed: () {
+                                        LocalFilePicker.download(
+                                          url: doc.pdfUrl!,
+                                          filename: doc.localFileName ?? '${doc.title}.pdf',
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       Builder(
                         builder: (ctx) {
                           final matchingVideo = VideoLibraryData.getByRelatedPdfId(doc.id);

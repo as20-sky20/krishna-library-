@@ -547,7 +547,7 @@ class _StudentIdCardModalState extends State<_StudentIdCardModal> {
                           ),
                           const SizedBox(height: 2),
                           const Text(
-                            'Scan at entry gate for automatic attendance punch',
+                            'Official barcode for library entry & book issue verification',
                             style: TextStyle(fontSize: 8.5, color: Colors.blueGrey, fontStyle: FontStyle.italic),
                           ),
                         ],

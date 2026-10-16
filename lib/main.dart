@@ -11,6 +11,9 @@ import 'id_card_view.dart';
 import 'quiz_data.dart';
 import 'quiz_view.dart';
 import 'whatsapp_reminder_view.dart';
+import 'ai_search_view.dart';
+import 'login_view.dart';
+import 'study_material_views.dart';
 
 void main() => runApp(const App());
 
@@ -21,8 +24,33 @@ const red = Color(0xFFE16D5A);
 const purple = Color(0xFF6D5DD3);
 const amber = Color(0xFFE6A62C);
 
-class App extends StatelessWidget {
+class App extends StatefulWidget {
   const App({super.key});
+
+  @override
+  State<App> createState() => _AppState();
+}
+
+class _AppState extends State<App> {
+  bool _isLoggedIn = false;
+  bool _isAdmin = false;
+  MemberRecord? _currentMember;
+
+  void _onLoginSuccess({required bool isAdmin, MemberRecord? member}) {
+    setState(() {
+      _isLoggedIn = true;
+      _isAdmin = isAdmin;
+      _currentMember = member;
+    });
+  }
+
+  void _onSignOut() {
+    setState(() {
+      _isLoggedIn = false;
+      _isAdmin = false;
+      _currentMember = null;
+    });
+  }
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -33,12 +61,27 @@ class App extends StatelessWidget {
           scaffoldBackgroundColor: const Color(0xFFF5F8FC),
           colorScheme: ColorScheme.fromSeed(seedColor: blue),
         ),
-        home: const Shell(),
+        home: _isLoggedIn
+            ? Shell(
+                initialIsAdmin: _isAdmin,
+                loggedInMember: _currentMember,
+                onSignOut: _onSignOut,
+              )
+            : LoginScreen(onLoginSuccess: _onLoginSuccess),
       );
 }
 
 class Shell extends StatefulWidget {
-  const Shell({super.key});
+  final bool initialIsAdmin;
+  final MemberRecord? loggedInMember;
+  final VoidCallback onSignOut;
+
+  const Shell({
+    super.key,
+    this.initialIsAdmin = false,
+    this.loggedInMember,
+    required this.onSignOut,
+  });
 
   @override
   State<Shell> createState() => _ShellState();
@@ -46,10 +89,20 @@ class Shell extends StatefulWidget {
 
 class _ShellState extends State<Shell> {
   int index = 0;
-  bool admin = false;
+  late bool admin;
+  MemberRecord? _activeMember;
+
+  @override
+  void initState() {
+    super.initState();
+    admin = widget.initialIsAdmin;
+    _activeMember = widget.loggedInMember;
+  }
 
   MemberRecord get currentMember =>
-      AdminData.getMemberById('KL-0248') ?? AdminData.members.first;
+      _activeMember ??
+      AdminData.getMemberById('KL-0248') ??
+      AdminData.members.first;
 
   int get mySeat => currentMember.seatNo;
 
@@ -62,6 +115,7 @@ class _ShellState extends State<Shell> {
             Admin(
               jump: (i) => setState(() => index = i),
               refresh: () => setState(() {}),
+              onSignOut: widget.onSignOut,
             ),
             Seats(
               my: mySeat,
@@ -70,16 +124,21 @@ class _ShellState extends State<Shell> {
               isAdmin: true,
               refresh: () => setState(() {}),
             ),
-            const Materials(),
+            Materials(
+              isAdmin: true,
+              onStateChange: () => setState(() {}),
+            ),
             Alerts(
               isAdmin: true,
               onRefresh: () => setState(() {}),
             ),
             Profile(
               admin: true,
+              currentMember: currentMember,
               switchMode: () => setState(() => admin = false),
               jump: (i) => setState(() => index = i),
               refresh: () => setState(() {}),
+              onSignOut: widget.onSignOut,
             ),
           ]
         : [
@@ -87,6 +146,7 @@ class _ShellState extends State<Shell> {
               available: 27 - busy.length,
               occupied: busy.length,
               my: mySeat,
+              member: currentMember,
               jump: (i) => setState(() => index = i),
               refresh: () => setState(() {}),
             ),
@@ -97,16 +157,21 @@ class _ShellState extends State<Shell> {
               isAdmin: false,
               refresh: () => setState(() {}),
             ),
-            const Materials(),
+            Materials(
+              isAdmin: false,
+              onStateChange: () => setState(() {}),
+            ),
             Alerts(
               isAdmin: false,
               onRefresh: () => setState(() {}),
             ),
             Profile(
               admin: false,
+              currentMember: currentMember,
               switchMode: () => setState(() => admin = true),
               jump: (i) => setState(() => index = i),
               refresh: () => setState(() {}),
+              onSignOut: widget.onSignOut,
             ),
           ];
 
@@ -146,24 +211,26 @@ class Home extends StatelessWidget {
     required this.available,
     required this.occupied,
     required this.my,
+    this.member,
     required this.jump,
     required this.refresh,
   });
 
   final int available, occupied, my;
+  final MemberRecord? member;
   final ValueChanged<int> jump;
   final VoidCallback refresh;
 
   @override
   Widget build(BuildContext context) {
-    final member = AdminData.getMemberById('KL-0248') ?? AdminData.members.first;
-    final isPaid = member.feeStatus == 'Paid';
+    final activeMember = member ?? AdminData.getMemberById('KL-0248') ?? AdminData.members.first;
+    final isPaid = activeMember.feeStatus == 'Paid';
 
     return Page(
       child: [
         const Brand(),
         const SizedBox(height: 22),
-        Text('Good morning, ${member.name.split(' ').first}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: navy)),
+        Text('Good morning, ${activeMember.name.split(' ').first}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: navy)),
         const Text('Your focused space is ready for you.', style: TextStyle(color: Colors.blueGrey)),
         const SizedBox(height: 18),
         const HeroBanner(),
@@ -171,9 +238,13 @@ class Home extends StatelessWidget {
         Row(children: [
           Stat('Available', '$available', green),
           Stat('Occupied', '$occupied', red),
-          Stat('My seat', member.seatNo.toString().padLeft(2, '0'), purple),
+          Stat('My seat', activeMember.seatNo.toString().padLeft(2, '0'), purple),
         ]),
-        const SizedBox(height: 24),
+        const SizedBox(height: 18),
+        KrishnaAiSearchBar(
+          onTap: () => showKrishnaAiSearchSheet(context),
+        ),
+        const SizedBox(height: 22),
         const SectionTitle('Quick actions'),
         const SizedBox(height: 12),
         Row(children: [
@@ -185,9 +256,9 @@ class Home extends StatelessWidget {
           ActionItem('Seats', Icons.event_seat, () => jump(1)),
           ActionItem('Material', Icons.menu_book, () => jump(2)),
           ActionItem(
-            'Attendance',
-            Icons.fact_check_outlined,
-            () => showMemberAttendanceSheet(context),
+            'AI Guru',
+            Icons.auto_awesome,
+            () => showKrishnaAiSearchSheet(context),
           ),
         ]),
         const SizedBox(height: 10),
@@ -200,7 +271,7 @@ class Home extends StatelessWidget {
           ActionItem(
             'Digital ID',
             Icons.badge_outlined,
-            () => showStudentIdCardSheet(context),
+            () => showStudentIdCardSheet(context, member: activeMember),
           ),
           ActionItem(
             'Shift / Desk',
@@ -210,7 +281,7 @@ class Home extends StatelessWidget {
           ActionItem(
             'Receipt Slip',
             Icons.receipt_long,
-            () => showMemberReceiptSheet(context),
+            () => showMemberReceiptSheet(context, member: activeMember),
           ),
         ]),
         const SizedBox(height: 24),
@@ -240,7 +311,7 @@ class Home extends StatelessWidget {
                       const Icon(Icons.workspace_premium, color: Color(0xFFF2B84B), size: 22),
                       const SizedBox(width: 8),
                       Text(
-                        member.plan,
+                        activeMember.plan,
                         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 15),
                       ),
                     ],
@@ -252,7 +323,7 @@ class Home extends StatelessWidget {
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      isPaid ? 'PAID & ACTIVE' : 'FEE DUE (₹${member.amount})',
+                      isPaid ? 'PAID & ACTIVE' : 'FEE DUE (₹${activeMember.amount})',
                       style: const TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -260,7 +331,7 @@ class Home extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                '₹${member.amount} / month • Seat ${member.seatNo.toString().padLeft(2, '0')} • Valid until ${member.dueDate}',
+                '₹${activeMember.amount} / month • Seat ${activeMember.seatNo.toString().padLeft(2, '0')} • Valid until ${activeMember.dueDate}',
                 style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
                 const SizedBox(height: 14),
@@ -290,7 +361,7 @@ class Home extends StatelessWidget {
                       ),
                       icon: const Icon(Icons.badge_outlined, size: 16),
                       label: const Text('ID Pass', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                      onPressed: () => showStudentIdCardSheet(context),
+                      onPressed: () => showStudentIdCardSheet(context, member: activeMember),
                     ),
                     const SizedBox(width: 6),
                     OutlinedButton.icon(
@@ -302,7 +373,7 @@ class Home extends StatelessWidget {
                       ),
                       icon: const Icon(Icons.receipt_long, size: 16),
                       label: const Text('Slip', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                      onPressed: () => showMemberReceiptSheet(context),
+                      onPressed: () => showMemberReceiptSheet(context, member: activeMember),
                     ),
                   ],
                 ),
@@ -323,14 +394,14 @@ class Home extends StatelessWidget {
             Icons.badge_outlined,
             'Official Student Digital ID Card (पहचान पत्र)',
             'Your official Krishna Library gate pass with barcode and Admin Kamal\'s stamp is ready to download.',
-            onTap: () => showStudentIdCardSheet(context),
+            onTap: () => showStudentIdCardSheet(context, member: activeMember),
           ),
           const SizedBox(height: 9),
           Notice(
             Icons.receipt_long_outlined,
             'My Fee Receipt & Active Plan',
-            'Your monthly membership (₹1,000) is paid and active. Tap to view fee receipt.',
-            onTap: () => showMemberReceiptSheet(context),
+            'Your monthly membership (₹${activeMember.amount}) is ${activeMember.feeStatus.toLowerCase()}. Tap to view fee receipt.',
+            onTap: () => showMemberReceiptSheet(context, member: activeMember),
           ),
           const SizedBox(height: 9),
           Notice(
@@ -392,7 +463,7 @@ class Seats extends StatelessWidget {
                 Expanded(
                   child: Text(
                     isAdmin
-                        ? '🟢 Available: ${27 - busy.length}   🔴 Occupied: ${busy.length}   🟣 My Seat: S${my.toString().padLeft(2, '0')}\nAdmin Mode: Tap occupied seats to manage student fees & attendance.'
+                        ? '🟢 Available: ${27 - busy.length}   🔴 Occupied: ${busy.length}   🟣 My Seat: S${my.toString().padLeft(2, '0')}\nAdmin Mode: Tap occupied seats to manage fees, plans & digital ID passes.'
                         : '🟢 Available: ${27 - busy.length}   🔴 Occupied: ${busy.length}   🟣 My Seat: S${my.toString().padLeft(2, '0')}\nTap occupied seats to see student name and study shift.',
                     style: const TextStyle(color: blue, fontWeight: FontWeight.w600, fontSize: 11.5),
                   ),
@@ -471,7 +542,10 @@ class Seats extends StatelessWidget {
 }
 
 class Materials extends StatefulWidget {
-  const Materials({super.key});
+  final bool isAdmin;
+  final VoidCallback? onStateChange;
+
+  const Materials({super.key, this.isAdmin = false, this.onStateChange});
 
   @override
   State<Materials> createState() => _MaterialsState();
@@ -731,6 +805,34 @@ class _MaterialsState extends State<Materials> {
         ),
         const SizedBox(height: 12),
 
+        if (widget.isAdmin) ...[
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 14),
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: red,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              icon: const Icon(Icons.upload_file_rounded, size: 20),
+              label: const Text(
+                '+ Add New Study Material / PDF (नया नोट्स व PDF जोड़ें)',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+              ),
+              onPressed: () => showAddStudyMaterialDialog(
+                context,
+                onSaved: () {
+                  setState(() {});
+                  widget.onStateChange?.call();
+                },
+              ),
+            ),
+          ),
+        ],
+
         // Document Cards List
         if (docs.isEmpty)
           Container(
@@ -748,7 +850,14 @@ class _MaterialsState extends State<Materials> {
             ),
           )
         else
-          ...docs.map((doc) => MaterialCard(document: doc)),
+          ...docs.map((doc) => MaterialCard(
+                document: doc,
+                isAdmin: widget.isAdmin,
+                onDelete: () {
+                  setState(() {});
+                  widget.onStateChange?.call();
+                },
+              )),
         ],
       ],
     );
@@ -899,9 +1008,16 @@ class _MaterialsState extends State<Materials> {
 }
 
 class MaterialCard extends StatelessWidget {
-  const MaterialCard({super.key, required this.document});
+  const MaterialCard({
+    super.key,
+    required this.document,
+    this.isAdmin = false,
+    this.onDelete,
+  });
 
   final StudyDocument document;
+  final bool isAdmin;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -994,6 +1110,47 @@ class MaterialCard extends StatelessWidget {
                             style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: navy),
                           ),
                         ),
+                        if (document.localFileName != null) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: red.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.attach_file, size: 10, color: red),
+                                const SizedBox(width: 2),
+                                Text(
+                                  document.localFileSize != null ? 'PDF • ${document.localFileSize}' : 'PDF File',
+                                  style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: red),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ] else if (document.pdfUrl != null && document.pdfUrl!.trim().isNotEmpty) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: green.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.link, size: 10, color: green),
+                                SizedBox(width: 2),
+                                Text(
+                                  'Drive / Link',
+                                  style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: green),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                     const SizedBox(height: 6),
@@ -1036,6 +1193,46 @@ class MaterialCard extends StatelessWidget {
                   ],
                 ),
               ),
+
+              if (isAdmin)
+                IconButton(
+                  tooltip: 'हटाएं (Delete PDF)',
+                  icon: const Icon(Icons.delete_outline, color: red, size: 20),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                        title: const Row(
+                          children: [
+                            Icon(Icons.delete_forever, color: red),
+                            SizedBox(width: 8),
+                            Text('Delete PDF?'),
+                          ],
+                        ),
+                        content: Text('क्या आप "${document.title}" को लाइब्रेरी से हटाना चाहते हैं?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('रद्द करें'),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: red, foregroundColor: Colors.white),
+                            onPressed: () {
+                              StudyRepository.removeDocument(document.id);
+                              Navigator.pop(ctx);
+                              onDelete?.call();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('"${document.title}" हटा दिया गया!')),
+                              );
+                            },
+                            child: const Text('हटाएं'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
             ],
           ),
         ),
@@ -1167,19 +1364,23 @@ class Profile extends StatelessWidget {
   const Profile({
     super.key,
     required this.admin,
+    this.currentMember,
     required this.switchMode,
     required this.jump,
     required this.refresh,
+    required this.onSignOut,
   });
 
   final bool admin;
+  final MemberRecord? currentMember;
   final VoidCallback switchMode;
   final ValueChanged<int> jump;
   final VoidCallback refresh;
+  final VoidCallback onSignOut;
 
   @override
   Widget build(BuildContext context) {
-    final currentMember = AdminData.getMemberById('KL-0248') ?? AdminData.members.first;
+    final activeMember = currentMember ?? AdminData.getMemberById('KL-0248') ?? AdminData.members.first;
 
     return Page(
         child: [
@@ -1199,18 +1400,18 @@ class Profile extends StatelessWidget {
                   child: admin
                       ? const Icon(Icons.shield_outlined, color: Color(0xFFF2B84B), size: 36)
                       : Text(
-                          currentMember.name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join(),
+                          activeMember.name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join(),
                           style: const TextStyle(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w800),
                         ),
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  admin ? '${AdminData.adminName} (Admin)' : currentMember.name,
+                  admin ? '${AdminData.adminName} (Admin)' : activeMember.name,
                   style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  admin ? 'Senior Library Director • KL-ADMIN-01' : 'Member ID • ${currentMember.id}',
+                  admin ? 'Senior Library Director • KL-ADMIN-01' : 'Member ID • ${activeMember.id} • Seat S-${activeMember.seatNo.toString().padLeft(2, '0')}',
                   style: TextStyle(color: admin ? const Color(0xFFF2B84B) : Colors.white70, fontSize: 13, fontWeight: admin ? FontWeight.bold : FontWeight.normal),
                 ),
                 if (admin) ...[
@@ -1234,7 +1435,7 @@ class Profile extends StatelessWidget {
             Info(label: 'Occupancy', value: '${AdminData.totalOccupied} Occupied / ${AdminData.availableSeats} Available'),
             Info(label: 'Fee Revenue', value: '₹${AdminData.totalRevenueCollected} Collected'),
             Info(label: 'Pending Dues', value: '₹${AdminData.totalPendingAmount} (${AdminData.pendingCount} Members)'),
-            Info(label: 'Today Present', value: '${AdminData.presentCount} Students In-Hall'),
+            Info(label: 'Study Materials', value: '${StudyRepository.documents.length} Published PDFs & Notes'),
             Info(label: 'Total Expenses', value: '₹${AdminData.totalExpenses} (${AdminData.expenses.length} Bills)'),
             Info(label: 'Net Monthly Profit', value: '₹${AdminData.netProfit}'),
             Info(label: 'Pending Requests', value: '${AdminData.pendingRequestsCount} Awaiting Review'),
@@ -1268,11 +1469,11 @@ class Profile extends StatelessWidget {
               onTap: () => showBatchWhatsAppReminderSheet(context, onSent: refresh),
             ),
             ListTile(
-              leading: const Icon(Icons.fact_check_outlined, color: green),
-              title: const Text('Attendance Register (उपस्थिति)', style: TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text('${AdminData.presentCount} present today, ${AdminData.breakCount} on break'),
+              leading: const Icon(Icons.upload_file_rounded, color: red),
+              title: const Text('Add & Manage Study PDFs (नोट्स व PDF)', style: TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text('${StudyRepository.documents.length} study modules published • Tap to add new'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => showAttendanceRegisterSheet(context, onStateChange: refresh),
+              onTap: () => showAddStudyMaterialDialog(context, onSaved: refresh),
             ),
             ListTile(
               leading: const Icon(Icons.qr_code_scanner, color: purple),
@@ -1312,19 +1513,18 @@ class Profile extends StatelessWidget {
               onTap: () => showCustomQrSettingsDialog(context, onSaved: refresh),
             ),
           ] else ...[
-            Info(label: 'Assigned seat', value: '${currentMember.seatNo.toString().padLeft(2, '0')} • Active'),
-            Info(label: 'Membership', value: currentMember.plan),
-            Info(label: 'Shift Timing', value: currentMember.shift),
-            Info(label: 'Expires', value: currentMember.dueDate),
-            Info(label: 'Payment', value: '${currentMember.feeStatus} • INR ${currentMember.amount} (${currentMember.paymentMode})'),
-            Info(label: 'Attendance Today', value: '${currentMember.attendanceStatus} (Check-in ${currentMember.checkInTime})'),
+            Info(label: 'Assigned seat', value: '${activeMember.seatNo.toString().padLeft(2, '0')} • Active'),
+            Info(label: 'Membership', value: activeMember.plan),
+            Info(label: 'Shift Timing', value: activeMember.shift),
+            Info(label: 'Expires', value: activeMember.dueDate),
+            Info(label: 'Payment', value: '${activeMember.feeStatus} • INR ${activeMember.amount} (${activeMember.paymentMode})'),
             const SizedBox(height: 10),
             ListTile(
               leading: const Icon(Icons.badge_outlined, color: blue),
               title: const Text('My Digital ID Card (पहचान पत्र)', style: TextStyle(fontWeight: FontWeight.bold)),
               subtitle: const Text('Official Krishna Library pass with barcode & Admin seal'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => showStudentIdCardSheet(context),
+              onTap: () => showStudentIdCardSheet(context, member: activeMember),
             ),
             ListTile(
               leading: const Icon(Icons.quiz_outlined, color: purple),
@@ -1354,7 +1554,7 @@ class Profile extends StatelessWidget {
               title: const Text('My Membership Receipt (रसीद)', style: TextStyle(fontWeight: FontWeight.bold)),
               subtitle: const Text('Official Krishna Library fee receipt & slip'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => showMemberReceiptSheet(context),
+              onTap: () => showMemberReceiptSheet(context, member: activeMember),
             ),
           ],
 
@@ -1362,25 +1562,65 @@ class Profile extends StatelessWidget {
           ListTile(
             leading: Icon(admin ? Icons.person_outline : Icons.admin_panel_settings_outlined, color: blue),
             title: Text(
-              admin ? 'Switch to Member View (${currentMember.name})' : 'Open Admin Console (${AdminData.adminName})',
+              admin ? 'Switch to Member View (${activeMember.name})' : 'Open Admin Console (${AdminData.adminName})',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-            subtitle: Text(admin ? 'Experience student/member view' : 'Manage fees, attendance & seats'),
+            subtitle: Text(admin ? 'Experience student/member view' : 'Manage fees, study PDFs & seats'),
             trailing: const Icon(Icons.chevron_right),
             onTap: switchMode,
           ),
           const ListTile(leading: Icon(Icons.help_outline, color: blue), title: Text('Help & support')),
-          const ListTile(leading: Icon(Icons.logout, color: red), title: Text('Sign out', style: TextStyle(color: red))),
+          ListTile(
+            leading: const Icon(Icons.logout, color: red),
+            title: const Text('Sign out (लॉगआउट करें)', style: TextStyle(color: red, fontWeight: FontWeight.bold)),
+            subtitle: const Text('Return to Login Screen / आईडी बदलें'),
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                  title: const Row(
+                    children: [
+                      Icon(Icons.logout, color: red),
+                      SizedBox(width: 8),
+                      Text('लॉगआउट करें?'),
+                    ],
+                  ),
+                  content: const Text('क्या आप सचमुच इस अकाउंट से लॉगआउट करके लॉगिन पेज पर जाना चाहते हैं?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('रद्द करें'),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: red, foregroundColor: Colors.white),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        onSignOut();
+                      },
+                      child: const Text('लॉगआउट'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         ],
       );
   }
 }
 
 class Admin extends StatelessWidget {
-  const Admin({super.key, required this.jump, required this.refresh});
+  const Admin({
+    super.key,
+    required this.jump,
+    required this.refresh,
+    required this.onSignOut,
+  });
 
   final ValueChanged<int> jump;
   final VoidCallback refresh;
+  final VoidCallback onSignOut;
 
   @override
   Widget build(BuildContext context) => Page(
@@ -1401,18 +1641,94 @@ class Admin extends StatelessWidget {
                       'KRISHNA LIBRARY\nOperations Master',
                       style: TextStyle(color: Colors.white, fontSize: 18, height: 1.4, fontWeight: FontWeight.w900),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF2B84B).withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text('ADMIN ID: KL-01', style: TextStyle(color: Color(0xFFF2B84B), fontSize: 11, fontWeight: FontWeight.bold)),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF2B84B).withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text('ADMIN ID: KL-01', style: TextStyle(color: Color(0xFFF2B84B), fontSize: 11, fontWeight: FontWeight.bold)),
+                        ),
+                        const SizedBox(width: 6),
+                        IconButton(
+                          tooltip: 'लॉगआउट (Sign Out)',
+                          icon: const Icon(Icons.logout_rounded, color: Colors.white70, size: 20),
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                                title: const Row(
+                                  children: [
+                                    Icon(Icons.logout, color: red),
+                                    SizedBox(width: 8),
+                                    Text('Admin Logout?'),
+                                  ],
+                                ),
+                                content: const Text('क्या आप एडमिन कंसोल से लॉगआउट करना चाहते हैं?'),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('रद्द करें')),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(backgroundColor: red, foregroundColor: Colors.white),
+                                    onPressed: () {
+                                      Navigator.pop(ctx);
+                                      onSignOut();
+                                    },
+                                    child: const Text('लॉगआउट'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ],
                     ),
                   ],
                 ),
                 const SizedBox(height: 10),
                 const Text('Branch 01 • Main Study Hall • Capacity 27 Seats', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF269C70),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 11),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        icon: const Icon(Icons.person_add_alt_1_rounded, size: 17),
+                        label: const Text(
+                          'New Admission (छात्र जोड़ें)',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+                        ),
+                        onPressed: () => showAddStudentDialog(context, onSaved: refresh),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE16D5A),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 11),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        icon: const Icon(Icons.upload_file_rounded, size: 17),
+                        label: const Text(
+                          'Add PDF (PDF जोड़ें)',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+                        ),
+                        onPressed: () => showAddStudyMaterialDialog(context, onSaved: refresh),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -1425,13 +1741,13 @@ class Admin extends StatelessWidget {
             mainAxisSpacing: 12,
             children: [
               InkWell(
-                onTap: () => showAttendanceRegisterSheet(context, onStateChange: refresh),
+                onTap: () => showAddStudyMaterialDialog(context, onSaved: refresh),
                 borderRadius: BorderRadius.circular(17),
                 child: Metric(
-                  value: '${AdminData.presentCount}/${AdminData.totalOccupied}',
-                  label: 'Today Present (Tap for list)',
-                  icon: Icons.fact_check_outlined,
-                  color: green,
+                  value: '${StudyRepository.documents.length}',
+                  label: 'Study PDFs (Tap to Add)',
+                  icon: Icons.picture_as_pdf,
+                  color: red,
                 ),
               ),
               InkWell(
@@ -1600,15 +1916,15 @@ class Admin extends StatelessWidget {
             onTap: () => showBatchWhatsAppReminderSheet(context, onSent: refresh),
           ),
           AdminItem(
-            icon: Icons.fact_check_outlined,
-            title: 'Live Attendance Register (उपस्थिति)',
-            detail: '${AdminData.presentCount} present • ${AdminData.breakCount} on break • Tap to change',
-            onTap: () => showAttendanceRegisterSheet(context, onStateChange: refresh),
+            icon: Icons.upload_file_rounded,
+            title: 'Upload / Add Study Material & PDF (नया नोट्स जोड़ें)',
+            detail: '${StudyRepository.documents.length} study PDFs published • Tap to add new notes or Drive link',
+            onTap: () => showAddStudyMaterialDialog(context, onSaved: refresh),
           ),
           AdminItem(
             icon: Icons.menu_book,
-            title: 'Study Materials (हिन्दी व English PDFs)',
-            detail: '14 curated exam modules and papers published',
+            title: 'Study Materials & PDFs (स्टडी मटेरियल)',
+            detail: '${StudyRepository.documents.length} curated exam modules & student notes published',
             onTap: () => jump(2),
           ),
           AdminItem(
@@ -1628,6 +1944,12 @@ class Admin extends StatelessWidget {
             title: 'Personal Payment QR / Barcode (पर्सनल QR सेटिंग्स)',
             detail: 'Set custom UPI ID (${AdminData.adminUpiId}), payee name & standee photo',
             onTap: () => showCustomQrSettingsDialog(context, onSaved: refresh),
+          ),
+          AdminItem(
+            icon: Icons.auto_awesome,
+            title: 'Krishna AI Study Guru (Gemini Flash ⚡)',
+            detail: 'AI doubt solver, exam research & Gemini Flash API configuration',
+            onTap: () => showKrishnaAiSearchSheet(context),
           ),
         ],
       );
@@ -1666,6 +1988,26 @@ class Brand extends StatelessWidget {
               ],
             ),
           ),
+          InkWell(
+            onTap: () => showKrishnaAiSearchSheet(context),
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: purple.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: purple.withValues(alpha: 0.3)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.auto_awesome, size: 13, color: purple),
+                  SizedBox(width: 4),
+                  Text('AI Guru', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: purple)),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
           const Icon(Icons.notifications_none, color: navy),
         ],
       );

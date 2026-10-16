@@ -12,4 +12,10 @@ class WhatsAppLauncher {
     final url = 'https://wa.me/$cleanPhone?text=$encodedText';
     platform_impl.openWhatsAppUrl(url);
   }
+
+  static void openUrl(String url) {
+    if (url.trim().isNotEmpty) {
+      platform_impl.openWhatsAppUrl(url.trim());
+    }
+  }
 }

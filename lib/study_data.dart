@@ -37,6 +37,10 @@ class StudyDocument {
   final int pages;
   final String description;
   final List<StudySection> sections;
+  final String? pdfUrl;
+  final String? localFileName;
+  final String? localFileSize;
+  final bool isCustom;
 
   const StudyDocument({
     required this.id,
@@ -47,10 +51,22 @@ class StudyDocument {
     required this.pages,
     required this.description,
     required this.sections,
+    this.pdfUrl,
+    this.localFileName,
+    this.localFileSize,
+    this.isCustom = false,
   });
 }
 
 class StudyRepository {
+  static void addDocument(StudyDocument doc) {
+    documents.insert(0, doc);
+  }
+
+  static void removeDocument(String id) {
+    documents.removeWhere((doc) => doc.id == id);
+  }
+
   static final List<StudyDocument> documents = [
     // ==========================================
     // 1. ENGLISH - SSC CGL 2025 Tier-1 Paper

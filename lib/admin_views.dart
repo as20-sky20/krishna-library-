@@ -87,22 +87,45 @@ void showSeatOccupantDetails(BuildContext context, int seatNo, {bool isAdmin = f
             const SizedBox(height: 18),
 
             if (member == null) ...[
-              const Center(
+              Center(
                 child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
+                  padding: const EdgeInsets.symmetric(vertical: 20),
                   child: Column(
                     children: [
-                      Icon(Icons.event_seat_outlined, size: 48, color: green),
-                      SizedBox(height: 10),
-                      Text(
+                      const Icon(Icons.event_seat_outlined, size: 48, color: green),
+                      const SizedBox(height: 10),
+                      const Text(
                         'This seat is currently available for allotment.',
                         style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: navy),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
-                        'Tap "Select Seat" in member mode or allot to a new student.',
-                        style: TextStyle(fontSize: 12, color: Colors.blueGrey),
+                        isAdmin
+                            ? 'Admin: नीचे दिए गए बटन से इस सीट पर नया छात्र जोड़ें।'
+                            : 'Tap "Select Seat" in member mode to choose this seat.',
+                        style: const TextStyle(fontSize: 12, color: Colors.blueGrey),
                       ),
+                      if (isAdmin) ...[
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: green,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 0,
+                          ),
+                          icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
+                          label: Text(
+                            'Allot Seat S-${seatNo.toString().padLeft(2, '0')} (नया छात्र जोड़ें)',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            showAddStudentDialog(context, initialSeatNo: seatNo, onSaved: onStateChange);
+                          },
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -171,16 +194,6 @@ void showSeatOccupantDetails(BuildContext context, int seatNo, {bool isAdmin = f
                 child: Column(
                   children: [
                     _detailRow('Shift Timing:', member.shift),
-                    const Divider(height: 16),
-                    _detailRow(
-                      'Today Status:',
-                      '${member.attendanceStatus} (In: ${member.checkInTime})',
-                      valueColor: member.attendanceStatus == 'Present'
-                          ? green
-                          : member.attendanceStatus == 'On Break'
-                              ? amber
-                              : red,
-                    ),
                     if (isAdmin) ...[
                       const Divider(height: 16),
                       _detailRow('Membership Plan:', member.plan),
@@ -234,28 +247,15 @@ void showSeatOccupantDetails(BuildContext context, int seatNo, {bool isAdmin = f
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: member.attendanceStatus == 'Present' ? amber : green,
-                          foregroundColor: Colors.white,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: blue,
+                          side: const BorderSide(color: blue),
                           padding: const EdgeInsets.symmetric(vertical: 10),
-                          elevation: 0,
                         ),
-                        icon: Icon(
-                          member.attendanceStatus == 'Present' ? Icons.free_breakfast : Icons.login,
-                          size: 16,
-                        ),
-                        label: Text(
-                          member.attendanceStatus == 'Present' ? 'Mark Break' : 'Mark Present',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                        ),
-                        onPressed: () {
-                          setSheetState(() {
-                            member.attendanceStatus =
-                                member.attendanceStatus == 'Present' ? 'On Break' : 'Present';
-                          });
-                          onStateChange?.call();
-                        },
+                        icon: const Icon(Icons.badge_outlined, size: 16),
+                        label: const Text('Digital ID Pass', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        onPressed: () => showStudentIdCardSheet(context, member: member),
                       ),
                     ),
                   ],
@@ -321,6 +321,48 @@ void showSeatOccupantDetails(BuildContext context, int seatNo, {bool isAdmin = f
                       onPressed: () {
                         Navigator.pop(ctx);
                         showOfficialFeeReceiptSheet(context, member: member);
+                      },
+                    ),
+                  ),
+                ],
+                if (isAdmin) ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: red,
+                        side: BorderSide(color: red.withValues(alpha: 0.6)),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      icon: const Icon(Icons.person_remove_outlined, size: 16),
+                      label: Text('Vacate Seat S-${seatNo.toString().padLeft(2, '0')} (सीट खाली करें)'),
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (dCtx) => AlertDialog(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            title: const Text('Vacate Seat? (सीट खाली करें?)'),
+                            content: Text('Are you sure you want to remove ${member.name} from Seat S-${seatNo.toString().padLeft(2, '0')}? This seat will become available for new students.'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(dCtx), child: const Text('Cancel')),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(backgroundColor: red, foregroundColor: Colors.white),
+                                onPressed: () {
+                                  AdminData.vacateSeat(seatNo);
+                                  Navigator.pop(dCtx);
+                                  Navigator.pop(ctx);
+                                  onStateChange?.call();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Seat S-${seatNo.toString().padLeft(2, '0')} is now vacant.')),
+                                  );
+                                },
+                                child: const Text('Vacate Seat'),
+                              ),
+                            ],
+                          ),
+                        );
                       },
                     ),
                   ),
@@ -1144,16 +1186,16 @@ Widget _detailRow(String label, String value, {Color? valueColor}) {
 // ========================================================
 // 4. MEMBER PERSONAL RECEIPT BOTTOM SHEET (छात्र रसीद)
 // ========================================================
-void showMemberReceiptSheet(BuildContext context) {
-  final member = AdminData.getMemberById('KL-0248') ?? AdminData.members.first; // Aarav Sharma
-  showOfficialFeeReceiptSheet(context, member: member);
+void showMemberReceiptSheet(BuildContext context, {MemberRecord? member}) {
+  final student = member ?? AdminData.getMemberById('KL-0248') ?? AdminData.members.first;
+  showOfficialFeeReceiptSheet(context, member: student);
 }
 
 // ========================================================
 // 5. MEMBER ATTENDANCE RECORD (छात्र उपस्थिति)
 // ========================================================
-void showMemberAttendanceSheet(BuildContext context) {
-  final member = AdminData.getMemberById('KL-0248') ?? AdminData.members.first; // Aarav Sharma
+void showMemberAttendanceSheet(BuildContext context, {MemberRecord? member}) {
+  final student = member ?? AdminData.getMemberById('KL-0248') ?? AdminData.members.first;
   showModalBottomSheet(
     context: context,
     showDragHandle: true,
@@ -1202,13 +1244,13 @@ void showMemberAttendanceSheet(BuildContext context) {
               children: [
                 _detailRow(
                   'Today Status:',
-                  '${member.attendanceStatus.toUpperCase()} (${member.attendanceStatus == "Present" ? "उपस्थित" : member.attendanceStatus == "On Break" ? "विश्राम" : "अनुपस्थित"})',
-                  valueColor: member.attendanceStatus == 'Present' ? green : member.attendanceStatus == 'On Break' ? amber : red,
+                  '${student.attendanceStatus.toUpperCase()} (${student.attendanceStatus == "Present" ? "उपस्थित" : student.attendanceStatus == "On Break" ? "विश्राम" : "अनुपस्थित"})',
+                  valueColor: student.attendanceStatus == 'Present' ? green : student.attendanceStatus == 'On Break' ? amber : red,
                 ),
                 const Divider(height: 14),
-                _detailRow('Check-in Time:', member.checkInTime),
+                _detailRow('Check-in Time:', student.checkInTime),
                 const Divider(height: 14),
-                _detailRow('Assigned Shift:', member.shift),
+                _detailRow('Assigned Shift:', student.shift),
                 const Divider(height: 14),
                 _detailRow('This Month Presence:', '26 / 28 Days (92.8%)', valueColor: blue),
                 const Divider(height: 14),
@@ -1221,3 +1263,265 @@ void showMemberAttendanceSheet(BuildContext context) {
     ),
   );
 }
+
+// ========================================================
+// 8. ADD NEW STUDENT ADMISSION DIALOG (नया छात्र जोड़ें)
+// ========================================================
+void showAddStudentDialog(BuildContext context, {int? initialSeatNo, VoidCallback? onSaved}) {
+  final nameController = TextEditingController();
+  final phoneController = TextEditingController(text: '+91 ');
+  final examController = TextEditingController(text: 'UPSC / SSC');
+  int selectedSeat = initialSeatNo ?? 1;
+  String selectedShift = 'Full Day (07:00 AM - 10:00 PM)';
+  String selectedPlan = 'Full Day Monthly (₹1,000)';
+  int amount = 1000;
+  String feeStatus = 'Paid';
+  String paymentMode = 'UPI';
+
+  // Find available seats
+  final occupiedSeats = AdminData.members.map((m) => m.seatNo).toSet();
+  final availableSeats = List.generate(27, (i) => i + 1)
+      .where((s) => !occupiedSeats.contains(s) || s == initialSeatNo)
+      .toList();
+  if (availableSeats.isNotEmpty && !availableSeats.contains(selectedSeat)) {
+    selectedSeat = availableSeats.first;
+  }
+
+  showDialog(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (dialogCtx, setDialogState) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: green.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
+              child: const Icon(Icons.person_add_alt_1_rounded, color: green, size: 22),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('New Student Admission', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: navy)),
+                  Text('नया छात्र जोड़ें व सीट अलॉट करें', style: TextStyle(fontSize: 11, color: Colors.blueGrey)),
+                ],
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('छात्र का नाम (Student Name):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: navy)),
+              const SizedBox(height: 4),
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(
+                  hintText: 'e.g. Rahul Sharma',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              const Text('मोबाइल नंबर (Phone Number):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: navy)),
+              const SizedBox(height: 4),
+              TextField(
+                controller: phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: InputDecoration(
+                  hintText: '+91 98123 45678',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('सीट नंबर (Seat):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: navy)),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade400), borderRadius: BorderRadius.circular(10)),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<int>(
+                              isExpanded: true,
+                              value: availableSeats.contains(selectedSeat) ? selectedSeat : (availableSeats.isNotEmpty ? availableSeats.first : 1),
+                              items: (availableSeats.isNotEmpty ? availableSeats : [1])
+                                  .map((s) => DropdownMenuItem(value: s, child: Text('Seat S-${s.toString().padLeft(2, '0')}')))
+                                  .toList(),
+                              onChanged: (val) {
+                                if (val != null) setDialogState(() => selectedSeat = val);
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('फीस स्थिति (Status):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: navy)),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade400), borderRadius: BorderRadius.circular(10)),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              isExpanded: true,
+                              value: feeStatus,
+                              items: ['Paid', 'Pending']
+                                  .map((f) => DropdownMenuItem(
+                                        value: f,
+                                        child: Text(
+                                          f,
+                                          style: TextStyle(color: f == 'Paid' ? green : red, fontWeight: FontWeight.bold),
+                                        ),
+                                      ))
+                                  .toList(),
+                              onChanged: (val) {
+                                if (val != null) setDialogState(() => feeStatus = val);
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+
+              const Text('शिफ्ट / प्लान (Shift & Plan):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: navy)),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade400), borderRadius: BorderRadius.circular(10)),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    isExpanded: true,
+                    value: selectedShift,
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'Full Day (07:00 AM - 10:00 PM)',
+                        child: Text('Full Day (₹1,000 / माह)'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Half Day Morning (07:00 AM - 02:00 PM)',
+                        child: Text('Half Day Morning (₹700 / माह)'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Half Day Evening (02:00 PM - 10:00 PM)',
+                        child: Text('Half Day Evening (₹700 / माह)'),
+                      ),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        setDialogState(() {
+                          selectedShift = val;
+                          if (val.contains('Full Day')) {
+                            selectedPlan = 'Full Day Monthly (₹1,000)';
+                            amount = 1000;
+                          } else {
+                            selectedPlan = 'Half Day Monthly (₹700)';
+                            amount = 700;
+                          }
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              const Text('तैयारी / लक्ष्य (Target Exam):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: navy)),
+              const SizedBox(height: 4),
+              TextField(
+                controller: examController,
+                decoration: InputDecoration(
+                  hintText: 'e.g. UPSC, SSC CGL, HSSC, NEET',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              const Text('भुगतान माध्यम (Payment Mode):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: navy)),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade400), borderRadius: BorderRadius.circular(10)),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    isExpanded: true,
+                    value: paymentMode,
+                    items: const [
+                      DropdownMenuItem(value: 'UPI', child: Text('UPI (GPay / PhonePe / Paytm)')),
+                      DropdownMenuItem(value: 'Cash', child: Text('Cash (नकद)')),
+                      DropdownMenuItem(value: 'Net Banking', child: Text('Net Banking / Bank Transfer')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) setDialogState(() => paymentMode = val);
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: green, foregroundColor: Colors.white),
+            onPressed: () {
+              final name = nameController.text.trim();
+              if (name.isEmpty) return;
+              final newId = 'KL-${(AdminData.members.length + 101).toString().padLeft(4, '0')}';
+
+              final newMember = MemberRecord(
+                id: newId,
+                name: name,
+                phone: phoneController.text.trim(),
+                seatNo: selectedSeat,
+                exam: examController.text.trim(),
+                shift: selectedShift,
+                plan: selectedPlan,
+                amount: amount,
+                feeStatus: feeStatus,
+                dueDate: '30 Days from today',
+                paymentMode: paymentMode,
+                attendanceStatus: 'Present',
+                checkInTime: '08:00 AM',
+                joinDate: 'Today',
+              );
+
+              AdminData.addMember(newMember);
+              Navigator.pop(ctx);
+              onSaved?.call();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('छात्र $name (Seat S-${selectedSeat.toString().padLeft(2, '0')}) सफलतापूर्वक जुड़ गए!'),
+                  backgroundColor: green,
+                ),
+              );
+            },
+            child: const Text('Admit Student (सेव करें)'),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+

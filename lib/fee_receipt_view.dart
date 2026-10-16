@@ -547,7 +547,7 @@ class _FeeReceiptModalContentState extends State<_FeeReceiptModalContent> {
                                     ),
                                     const Divider(height: 1),
                                     _buildTableLine(
-                                      '5. Digital ID Smart Pass & Entry Attendance',
+                                      '5. Digital ID Smart Pass & Hall Gate Access',
                                       'Lifetime',
                                       'FREE',
                                       isFree: true,

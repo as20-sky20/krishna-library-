@@ -295,6 +295,62 @@ class AdminData {
     }
   }
 
+  /// Add a new student / member into the library database
+  static void addMember(MemberRecord member) {
+    members.add(member);
+    alerts.insert(
+      0,
+      AppAlert(
+        icon: 'seat',
+        title: 'New Student Admitted',
+        message: '${member.name} admitted to Seat S-${member.seatNo.toString().padLeft(2, '0')} (${member.plan}).',
+        time: 'Just now',
+        isPayment: member.feeStatus == 'Paid',
+      ),
+    );
+  }
+
+  /// Remove or vacate a member from a seat
+  static void vacateSeat(int seatNo) {
+    final m = getMemberBySeat(seatNo);
+    if (m != null) {
+      members.removeWhere((x) => x.seatNo == seatNo);
+      alerts.insert(
+        0,
+        AppAlert(
+          icon: 'seat',
+          title: 'Seat S-${seatNo.toString().padLeft(2, '0')} Vacated',
+          message: 'Desk S-${seatNo.toString().padLeft(2, '0')} (${m.name}) is now empty & available.',
+          time: 'Just now',
+          isPayment: false,
+        ),
+      );
+    }
+  }
+
+  /// Remove a member by ID
+  static void removeMember(String memberId) {
+    final m = getMemberById(memberId);
+    if (m != null) {
+      members.removeWhere((x) => x.id == memberId);
+      alerts.insert(
+        0,
+        AppAlert(
+          icon: 'seat',
+          title: 'Member Removed',
+          message: '${m.name} (Seat S-${m.seatNo.toString().padLeft(2, '0')}) has been removed.',
+          time: 'Just now',
+          isPayment: false,
+        ),
+      );
+    }
+  }
+
+  /// Reset or clear all demo student records
+  static void clearAllDemoData() {
+    members.clear();
+  }
+
   // Admin Payment Credentials (Personal / Customizable)
   static String adminName = 'Kamal';
   static String adminUpiId = 'kamal.krishnalibrary@okhdfcbank';
