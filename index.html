@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>KRISHNA LIBRARY - डिजिटल लाइब्रेरी मैनेजमेंट</title>
+  <link rel="icon" type="image/png" href="https://img.icons8.com/color/96/books.png">
+  
+  <!-- Tailwind CSS & FontAwesome -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Rozha+One&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f7ff',
+              100: '#e0effe',
+              500: '#1769AA',
+              600: '#105285',
+              700: '#102A43',
+              800: '#0b1d2e',
+              accent: '#E6A62C',
+              green: '#269C70',
+              red: '#E16D5A',
+              purple: '#6D5DD3'
+            }
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            hindi: ['"Rozha One"', 'serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .seat-grid {
+      grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+    }
+    @media (min-width: 640px) {
+      .seat-grid {
+        grid-template-columns: repeat(10, 1fr);
+      }
+    }
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #receiptPrintArea, #receiptPrintArea * {
+        visibility: visible;
+      }
+      #receiptPrintArea {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 20px;
+        box-shadow: none;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased select-none">
+
+  <!-- ================= TOP NAVBAR ================= -->
+  <header class="bg-gradient-to-r from-brand-700 via-brand-600 to-brand-500 text-white shadow-lg sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 text-brand-accent text-xl shadow-inner">
+          <i class="fa-solid fa-graduation-cap"></i>
+        </div>
+        <div>
+          <h1 class="text-lg sm:text-xl font-extrabold tracking-wide flex items-center gap-2">
+            <span>KRISHNA LIBRARY</span>
+            <span class="text-[10px] bg-brand-accent/20 text-yellow-300 border border-yellow-300/30 px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider">LIVE</span>
+          </h1>
+          <p class="text-xs text-blue-100/80 font-medium">शांतिपूर्ण अध्ययन केंद्र • Balsamand, Hisar</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <div id="userBadge" class="hidden sm:flex items-center gap-2 bg-white/10 border border-white/20 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="userName">Admin</span>
+        </div>
+        <button id="logoutBtn" onclick="app.logout()" class="hidden bg-red-500/80 hover:bg-red-500 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1.5 shadow">
+          <i class="fa-solid fa-right-from-bracket"></i>
+          <span>Logout</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= MAIN CONTAINER ================= -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6">
+
+    <!-- 1. LOGIN SCREEN -->
+    <div id="loginView" class="max-w-md mx-auto my-6 sm:my-10">
+      <div class="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+        <div class="bg-gradient-to-br from-brand-700 to-brand-500 p-6 text-white text-center relative overflow-hidden">
+          <div class="absolute -right-8 -top-8 w-32 h-32 bg-white/5 rounded-full blur-xl"></div>
+          <div class="w-16 h-16 mx-auto bg-white/15 rounded-2xl flex items-center justify-center text-3xl mb-3 shadow-inner border border-white/20">
+            <i class="fa-solid fa-book-open-reader text-yellow-300"></i>
+          </div>
+          <h2 class="text-2xl font-bold tracking-tight">स्वागत है!</h2>
+          <p class="text-xs text-blue-100 mt-1">कृष्णा लाइब्रेरी - डिजिटल पोर्टल में लॉगिन करें</p>
+        </div>
+
+        <!-- Role Toggle Tabs -->
+        <div class="p-6">
+          <div class="flex rounded-xl bg-slate-100 p-1 mb-6 text-sm font-semibold">
+            <button id="adminTabBtn" onclick="app.switchLoginRole('admin')" class="flex-1 py-2 rounded-lg bg-white shadow-sm text-brand-700 flex items-center justify-center gap-2 transition">
+              <i class="fa-solid fa-user-shield text-brand-500"></i> एडमिन लॉगिन
+            </button>
+            <button id="studentTabBtn" onclick="app.switchLoginRole('student')" class="flex-1 py-2 rounded-lg text-slate-500 hover:text-slate-700 flex items-center justify-center gap-2 transition">
+              <i class="fa-solid fa-user-graduate"></i> छात्र लॉगिन
+            </button>
+          </div>
+
+          <!-- Login Form -->
+          <form onsubmit="event.preventDefault(); app.handleLogin();" class="space-y-4">
+            <div id="idInputGroup">
+              <label class="block text-xs font-bold text-slate-600 mb-1" id="idLabel">एडमिन ID / मोबाइल नंबर</label>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                  <i class="fa-solid fa-id-card"></i>
+                </span>
+                <input type="text" id="loginId" value="admin" class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 text-sm outline-none font-medium transition" placeholder="उदा. admin या kl-01">
+              </div>
+            </div>
+
+            <div id="pinInputGroup">
+              <label class="block text-xs font-bold text-slate-600 mb-1">पासवर्ड / सिक्योरिटी पिन</label>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                  <i class="fa-solid fa-lock"></i>
+                </span>
+                <input type="password" id="loginPin" value="1234" class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 text-sm outline-none font-medium transition" placeholder="4 अंकों का पिन">
+              </div>
+            </div>
+
+            <div id="loginError" class="hidden p-3 rounded-xl bg-red-50 text-red-600 border border-red-200 text-xs font-semibold flex items-center gap-2">
+              <i class="fa-solid fa-circle-exclamation"></i>
+              <span id="loginErrorText">गलत आईडी या पासवर्ड</span>
+            </div>
+
+            <button type="submit" class="w-full py-3 bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-700 hover:to-brand-600 text-white rounded-xl font-bold text-sm shadow-md shadow-brand-500/25 transition flex items-center justify-center gap-2">
+              <span>लॉगिन करें</span>
+              <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </form>
+
+          <!-- Quick Test Credentials Pill -->
+          <div class="mt-6 pt-5 border-t border-slate-100 text-center">
+            <p class="text-xs text-slate-400 mb-2 font-medium">तुरंत टेस्ट करने के लिए नीचे क्लिक करें:</p>
+            <div class="flex gap-2">
+              <button onclick="app.fillDemo('admin')" class="flex-1 py-1.5 px-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-[11px] font-semibold text-slate-700 transition">
+                ⚡ एडमिन डेमो
+              </button>
+              <button onclick="app.fillDemo('student')" class="flex-1 py-1.5 px-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-[11px] font-semibold text-slate-700 transition">
+                🎓 छात्र डेमो (KL-0248)
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. ADMIN DASHBOARD -->
+    <div id="adminView" class="hidden space-y-6">
+
+      <!-- Stats Cards -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+          <div>
+            <p class="text-xs text-slate-400 font-semibold">कुल सीट्स</p>
+            <h3 class="text-2xl font-extrabold text-slate-800 mt-0.5">50</h3>
+            <p class="text-[11px] text-slate-500 mt-1">क्षमता</p>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-blue-50 text-brand-500 flex items-center justify-center text-xl">
+            <i class="fa-solid fa-chair"></i>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+          <div>
+            <p class="text-xs text-slate-400 font-semibold">बुक सीट</p>
+            <h3 id="statBooked" class="text-2xl font-extrabold text-brand-red mt-0.5">12</h3>
+            <p class="text-[11px] text-emerald-600 font-semibold mt-1">सक्रिय छात्र</p>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-red-50 text-brand-red flex items-center justify-center text-xl">
+            <i class="fa-solid fa-user-check"></i>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+          <div>
+            <p class="text-xs text-slate-400 font-semibold">खाली सीट्स</p>
+            <h3 id="statAvailable" class="text-2xl font-extrabold text-emerald-600 mt-0.5">38</h3>
+            <p class="text-[11px] text-slate-500 mt-1">उपलब्ध</p>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+          <div>
+            <p class="text-xs text-slate-400 font-semibold">मासिक फीस संग्रह</p>
+            <h3 id="statFees" class="text-2xl font-extrabold text-brand-700 mt-0.5">₹10,200</h3>
+            <p class="text-[11px] text-amber-600 font-semibold mt-1">2 पेंडिंग फीस</p>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-yellow-50 text-brand-accent flex items-center justify-center text-xl">
+            <i class="fa-solid fa-indian-rupee-sign"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Bar within Admin -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-2 flex flex-wrap gap-2 text-sm font-semibold">
+        <button onclick="app.setAdminTab('seats')" id="tabBtnSeats" class="px-4 py-2 rounded-xl bg-brand-500 text-white shadow-sm flex items-center gap-2 transition">
+          <i class="fa-solid fa-border-all"></i> सीट्स लेआउट (50)
+        </button>
+        <button onclick="app.setAdminTab('members')" id="tabBtnMembers" class="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 flex items-center gap-2 transition">
+          <i class="fa-solid fa-users"></i> मेंबर्स लिस्ट
+        </button>
+        <button onclick="app.setAdminTab('add')" id="tabBtnAdd" class="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 flex items-center gap-2 transition">
+          <i class="fa-solid fa-user-plus"></i> नया एडमिशन
+        </button>
+        <button onclick="app.setAdminTab('receipts')" id="tabBtnReceipts" class="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 flex items-center gap-2 transition">
+          <i class="fa-solid fa-receipt"></i> फीस रसीद
+        </button>
+      </div>
+
+      <!-- SECTION: SEATS GRID -->
+      <div id="adminSeatsSection" class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-slate-100">
+          <div>
+            <h3 class="font-extrabold text-slate-800 text-lg flex items-center gap-2">
+              <span>लाइब्रेरी सीट मैप</span>
+              <span class="text-xs bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full font-bold">50 Seater Hall</span>
+            </h3>
+            <p class="text-xs text-slate-500">सीट की जानकारी देखने या खाली सीट बुक करने के लिए किसी भी सीट पर क्लिक करें</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-3 text-xs font-semibold">
+            <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded bg-emerald-500"></span> खाली (38)</span>
+            <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded bg-red-500"></span> फुल डे बुक (8)</span>
+            <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded bg-amber-500"></span> हाफ डे बुक (4)</span>
+          </div>
+        </div>
+
+        <!-- 50 Seats Matrix -->
+        <div id="seatsContainer" class="grid seat-grid gap-2.5 sm:gap-3 py-2">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- SECTION: MEMBERS TABLE -->
+      <div id="adminMembersSection" class="hidden bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+          <div>
+            <h3 class="font-extrabold text-slate-800 text-lg">रजिस्टर्ड छात्र / मेंबर्स</h3>
+            <p class="text-xs text-slate-500">सभी मेंबर्स की सूची, शिफ्ट और फीस स्थिति</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <input type="text" id="memberSearch" onkeyup="app.filterMembers()" placeholder="नाम, ID या मोबाइल खोजें..." class="px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 w-full sm:w-60">
+            <select id="shiftFilter" onchange="app.filterMembers()" class="px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-white">
+              <option value="all">सभी शिफ्ट</option>
+              <option value="Full Day">फुल डे</option>
+              <option value="Half Day">हाफ डे</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-50 text-slate-500 uppercase font-bold border-y border-slate-200/60">
+              <tr>
+                <th class="py-3 px-3">सीट</th>
+                <th class="py-3 px-3">मेंबर ID & नाम</th>
+                <th class="py-3 px-3">मोबाइल नंबर</th>
+                <th class="py-3 px-3">एग्जाम</th>
+                <th class="py-3 px-3">शिफ्ट & प्लान</th>
+                <th class="py-3 px-3">फीस स्टेटस</th>
+                <th class="py-3 px-3 text-right">एक्शन</th>
+              </tr>
+            </thead>
+            <tbody id="membersTableBody" class="divide-y divide-slate-100">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SECTION: NEW ADMISSION FORM -->
+      <div id="adminAddSection" class="hidden bg-white rounded-2xl shadow-sm border border-slate-100 p-6 max-w-2xl mx-auto">
+        <div class="mb-5 pb-3 border-b border-slate-100">
+          <h3 class="font-extrabold text-slate-800 text-lg flex items-center gap-2">
+            <i class="fa-solid fa-user-plus text-brand-500"></i>
+            <span>नया छात्र एडमिशन / सीट आवंटन</span>
+          </h3>
+          <p class="text-xs text-slate-500">नए छात्र का विवरण भरकर तुरंत सीट अलॉट करें</p>
+        </div>
+
+        <form onsubmit="event.preventDefault(); app.addNewMember();" class="space-y-4 text-xs font-semibold">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-slate-600 mb-1">छात्र का नाम *</label>
+              <input type="text" id="newStudentName" required placeholder="उदा. रोहन कुमार" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20">
+            </div>
+            <div>
+              <label class="block text-slate-600 mb-1">मोबाइल नंबर (WhatsApp) *</label>
+              <input type="tel" id="newStudentPhone" required placeholder="उदा. 9812345678" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-slate-600 mb-1">सीट नंबर (खाली) *</label>
+              <select id="newStudentSeat" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 outline-none bg-white focus:border-brand-500">
+                <!-- Available seats populated dynamically -->
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-600 mb-1">प्लान & फीस *</label>
+              <select id="newStudentPlan" onchange="app.onPlanChange()" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 outline-none bg-white focus:border-brand-500">
+                <option value="Full Day (₹1,000)">फुल डे - ₹1,000/माह</option>
+                <option value="Half Day Morning (₹700)">हाफ डे सुबह - ₹700/माह</option>
+                <option value="Half Day Evening (₹700)">हाफ डे शाम - ₹700/माह</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-600 mb-1">तैयारी / एग्जाम</label>
+              <input type="text" id="newStudentExam" placeholder="उदा. SSC / UPSC / CET" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-brand-500">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-slate-600 mb-1">फीस स्थिति</label>
+              <select id="newStudentFeeStatus" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 outline-none bg-white focus:border-brand-500">
+                <option value="Paid">जमा (Paid)</option>
+                <option value="Pending">बाकी (Pending)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-600 mb-1">पेमेंट माध्यम</label>
+              <select id="newStudentPaymentMode" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 outline-none bg-white focus:border-brand-500">
+                <option value="UPI (GPay/PhonePe)">UPI (GPay / PhonePe / Paytm)</option>
+                <option value="Cash">नकद (Cash)</option>
+              </select>
+            </div>
+          </div>
+
+          <button type="submit" class="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-bold shadow-md shadow-brand-500/25 transition mt-2">
+            एडमिशन कन्फर्म करें & सीट अलॉट करें
+          </button>
+        </form>
+      </div>
+
+      <!-- SECTION: RECEIPTS -->
+      <div id="adminReceiptsSection" class="hidden bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+        <div class="mb-5 pb-3 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <h3 class="font-extrabold text-slate-800 text-lg">ऑफिशियल फीस रसीद काउंटर</h3>
+            <p class="text-xs text-slate-500">किसी भी छात्र की डिजिटल रसीद प्रिंट करें या WhatsApp पर भेजें</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="receiptsGrid">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 3. STUDENT PORTAL -->
+    <div id="studentView" class="hidden space-y-6">
+
+      <!-- Student Welcome Card -->
+      <div class="bg-gradient-to-r from-brand-700 to-brand-500 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="flex items-center gap-4">
+            <div class="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-3xl text-yellow-300 shadow">
+              <i class="fa-solid fa-user-graduate"></i>
+            </div>
+            <div>
+              <span class="text-[11px] bg-emerald-500/30 border border-emerald-400/40 text-emerald-200 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">सक्रिय सदस्य</span>
+              <h2 id="studentCardName" class="text-2xl font-black mt-1">Aarav Sharma</h2>
+              <p class="text-xs text-blue-100 font-medium">Member ID: <span id="studentCardId" class="font-bold text-yellow-300">KL-0248</span> • सीट नंबर: <span id="studentCardSeat" class="font-bold text-white">12</span></p>
+            </div>
+          </div>
+          <div class="bg-white/10 border border-white/20 rounded-xl p-3 text-center sm:text-right backdrop-blur-sm">
+            <p class="text-[11px] text-blue-200 font-medium">फीस वैध्यता</p>
+            <p id="studentCardDue" class="text-sm font-bold text-yellow-300">30 June 2026 तक</p>
+            <span class="inline-block mt-1 text-[10px] bg-emerald-500 text-white px-2 py-0.5 rounded font-bold">FEES PAID</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Student Navigation Tabs -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-2 flex flex-wrap gap-2 text-sm font-semibold">
+        <button onclick="app.setStudentTab('idcard')" id="sTabBtnId" class="px-4 py-2 rounded-xl bg-brand-500 text-white shadow-sm flex items-center gap-2">
+          <i class="fa-solid fa-id-badge"></i> डिजिटल ID कार्ड
+        </button>
+        <button onclick="app.setStudentTab('study')" id="sTabBtnStudy" class="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 flex items-center gap-2">
+          <i class="fa-solid fa-book"></i> स्टडी मटेरियल & नोट्स
+        </button>
+        <button onclick="app.setStudentTab('quiz')" id="sTabBtnQuiz" class="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 flex items-center gap-2">
+          <i class="fa-solid fa-circle-question"></i> डेली क्विज & टेस्ट
+        </button>
+        <button onclick="app.setStudentTab('search')" id="sTabBtnSearch" class="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 flex items-center gap-2">
+          <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i> AI स्टडी असिस्टेंट
+        </button>
+      </div>
+
+      <!-- SECTION: ID CARD -->
+      <div id="studentIdSection" class="max-w-md mx-auto">
+        <div class="bg-white rounded-2xl shadow-xl border-2 border-brand-500/30 overflow-hidden p-6 relative">
+          <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+            <div class="flex items-center gap-2.5">
+              <div class="w-9 h-9 rounded-xl bg-brand-500 text-white flex items-center justify-center font-bold text-lg">
+                K
+              </div>
+              <div>
+                <h4 class="font-extrabold text-sm text-slate-800">KRISHNA LIBRARY</h4>
+                <p class="text-[10px] text-slate-400">STUDENT IDENTITY CARD</p>
+              </div>
+            </div>
+            <span class="text-xs font-bold text-brand-500 bg-brand-50 px-2 py-1 rounded-lg">2026-27</span>
+          </div>
+
+          <div class="flex gap-4 items-center mb-4">
+            <div class="w-20 h-24 bg-slate-100 rounded-xl border border-slate-200 flex flex-col items-center justify-center text-slate-400">
+              <i class="fa-solid fa-user text-3xl"></i>
+              <span class="text-[9px] mt-1 font-semibold">PHOTO</span>
+            </div>
+            <div class="space-y-1.5 text-xs">
+              <p><span class="text-slate-400 font-semibold">नाम:</span> <strong id="idCardName" class="text-slate-800">Aarav Sharma</strong></p>
+              <p><span class="text-slate-400 font-semibold">मेंबर ID:</span> <strong id="idCardId" class="text-brand-500">KL-0248</strong></p>
+              <p><span class="text-slate-400 font-semibold">अलॉटेड सीट:</span> <strong id="idCardSeat" class="text-emerald-600 text-sm">Seat #12</strong></p>
+              <p><span class="text-slate-400 font-semibold">तैयारी:</span> <strong id="idCardExam">SSC CGL 2025</strong></p>
+              <p><span class="text-slate-400 font-semibold">शिफ्ट:</span> <strong>फुल डे (07:00 AM - 10:00 PM)</strong></p>
+            </div>
+          </div>
+
+          <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center text-[10px] text-slate-500 font-medium">
+            Near Bus Stand, VPO Balsamand, Hisar | Mob: +91 94160 11223
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION: STUDY MATERIAL -->
+      <div id="studentStudySection" class="hidden space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-3 hover:shadow-md transition">
+            <div class="w-12 h-12 rounded-xl bg-blue-50 text-brand-500 flex items-center justify-center text-xl shrink-0">
+              <i class="fa-solid fa-file-pdf"></i>
+            </div>
+            <div class="flex-1">
+              <span class="text-[10px] font-bold bg-blue-50 text-brand-500 px-2 py-0.5 rounded">GK & GS</span>
+              <h4 class="font-bold text-sm text-slate-800 mt-1">Lucent Samanya Gyan (NCERT निचोड़)</h4>
+              <p class="text-[11px] text-slate-500 mt-0.5">इतिहास, भूगोल, संविधान के महत्वपूर्ण नोट्स</p>
+              <button onclick="alert('PDF डाउनलोड शुरू हो गई है!')" class="mt-2 text-xs font-bold text-brand-500 hover:text-brand-700 flex items-center gap-1">
+                <i class="fa-solid fa-download"></i> PDF देखें / डाउनलोड
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-3 hover:shadow-md transition">
+            <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl shrink-0">
+              <i class="fa-solid fa-brain"></i>
+            </div>
+            <div class="flex-1">
+              <span class="text-[10px] font-bold bg-purple-50 text-purple-600 px-2 py-0.5 rounded">REASONING</span>
+              <h4 class="font-bold text-sm text-slate-800 mt-1">तर्कशक्ति (Reasoning Formula Sheet)</h4>
+              <p class="text-[11px] text-slate-500 mt-0.5">Syllogism, Blood Relation, Seating Tricks</p>
+              <button onclick="alert('PDF डाउनलोड शुरू हो गई है!')" class="mt-2 text-xs font-bold text-brand-500 hover:text-brand-700 flex items-center gap-1">
+                <i class="fa-solid fa-download"></i> PDF देखें / डाउनलोड
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-3 hover:shadow-md transition">
+            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shrink-0">
+              <i class="fa-solid fa-newspaper"></i>
+            </div>
+            <div class="flex-1">
+              <span class="text-[10px] font-bold bg-amber-50 text-amber-600 px-2 py-0.5 rounded">CURRENT AFFAIRS</span>
+              <h4 class="font-bold text-sm text-slate-800 mt-1">मासिक करंट अफेयर्स 2026</h4>
+              <p class="text-[11px] text-slate-500 mt-0.5">राष्ट्रीय और अंतर्राष्ट्रीय घटनाक्रम एक नजर में</p>
+              <button onclick="alert('PDF डाउनलोड शुरू हो गई है!')" class="mt-2 text-xs font-bold text-brand-500 hover:text-brand-700 flex items-center gap-1">
+                <i class="fa-solid fa-download"></i> PDF देखें / डाउनलोड
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION: QUIZ -->
+      <div id="studentQuizSection" class="hidden max-w-2xl mx-auto bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+          <h3 class="font-bold text-slate-800">दैनिक मॉक टेस्ट (10 प्रश्न)</h3>
+          <span class="text-xs bg-brand-50 text-brand-500 font-bold px-2.5 py-1 rounded-full">लाइव टेस्ट</span>
+        </div>
+        <div id="quizContainer" class="space-y-4">
+          <p class="text-sm font-semibold text-slate-700" id="quizQuestion">1. भारतीय संविधान के किस अनुच्छेद में 'विधि के समक्ष समानता' का अधिकार दिया गया है?</p>
+          <div class="space-y-2 text-xs font-medium" id="quizOptions">
+            <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
+              <input type="radio" name="mcq" value="0">
+              <span>(A) अनुच्छेद 14</span>
+            </label>
+            <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
+              <input type="radio" name="mcq" value="1">
+              <span>(B) अनुच्छेद 19</span>
+            </label>
+            <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
+              <input type="radio" name="mcq" value="2">
+              <span>(C) अनुच्छेद 21</span>
+            </label>
+          </div>
+          <button onclick="alert('उत्तर सही है! अनुच्छेद 14 समानता का अधिकार सुनिश्चित करता है।')" class="w-full py-2.5 bg-brand-500 text-white rounded-xl font-bold text-xs">
+            सबमिट करें & उत्तर जांचें
+          </button>
+        </div>
+      </div>
+
+      <!-- SECTION: AI ASSISTANT -->
+      <div id="studentSearchSection" class="hidden max-w-2xl mx-auto bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+        <div class="text-center mb-5">
+          <div class="w-12 h-12 mx-auto rounded-2xl bg-gradient-to-tr from-amber-400 to-yellow-500 text-white flex items-center justify-center text-xl shadow mb-2">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+          </div>
+          <h3 class="font-extrabold text-slate-800 text-base">कृष्णा लाइब्रेरी AI स्टडी असिस्टेंट</h3>
+          <p class="text-xs text-slate-500">किसी भी विषय, नियम या करंट अफेयर्स का तुरंत उत्तर पाएं</p>
+        </div>
+
+        <div class="flex gap-2 mb-4">
+          <input type="text" id="aiQuery" placeholder="उदा. संविधान का 42वां संशोधन क्या है? या बक्सर का युद्ध कब हुआ?" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-brand-500 font-medium">
+          <button onclick="app.askAi()" class="px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-bold shadow">
+            पूछें
+          </button>
+        </div>
+
+        <div id="aiResponse" class="hidden p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs leading-relaxed text-slate-700">
+          <!-- AI Answer -->
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ================= RECEIPT MODAL (PRINTABLE) ================= -->
+  <div id="receiptModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-150">
+      <div id="receiptPrintArea" class="p-6">
+        <div class="text-center border-b-2 border-brand-500 pb-3 mb-4">
+          <h2 class="text-2xl font-black tracking-tight text-brand-700">KRISHNA LIBRARY</h2>
+          <p class="text-xs text-slate-500 font-semibold">Near Bus Stand, VPO Balsamand, Hisar (Haryana) - 125001</p>
+          <p class="text-[11px] text-slate-400 font-medium">मोबाइल: +91 94160 11223 | संचालक: कमल</p>
+          <div class="inline-block mt-2 px-3 py-0.5 bg-brand-50 text-brand-600 rounded-full font-bold text-xs uppercase tracking-wider">
+            ऑफिशियल फीस रसीद (FEES RECEIPT)
+          </div>
+        </div>
+
+        <div class="flex justify-between text-xs mb-4">
+          <div>
+            <p class="text-slate-400">रसीद संख्या:</p>
+            <strong id="rcptNo" class="text-slate-800">KL-RCP-2026-081</strong>
+          </div>
+          <div class="text-right">
+            <p class="text-slate-400">दिनांक:</p>
+            <strong id="rcptDate" class="text-slate-800">10-11-2026</strong>
+          </div>
+        </div>
+
+        <div class="bg-slate-50 rounded-xl p-3.5 border border-slate-100 text-xs space-y-2 mb-4">
+          <div class="flex justify-between"><span class="text-slate-500">छात्र का नाम:</span> <strong id="rcptStudent" class="text-slate-800 text-sm">Aarav Sharma</strong></div>
+          <div class="flex justify-between"><span class="text-slate-500">मेंबर ID:</span> <strong id="rcptId" class="text-brand-500">KL-0248</strong></div>
+          <div class="flex justify-between"><span class="text-slate-500">अलॉटेड सीट नंबर:</span> <strong id="rcptSeat" class="text-emerald-600">Seat #12</strong></div>
+          <div class="flex justify-between"><span class="text-slate-500">शिफ्ट & समय:</span> <strong id="rcptShift">Full Day (07:00 AM - 10:00 PM)</strong></div>
+          <div class="flex justify-between"><span class="text-slate-500">पेमेंट माध्यम:</span> <strong id="rcptMode">UPI (GPay)</strong></div>
+          <div class="flex justify-between pt-2 border-t border-slate-200">
+            <span class="text-slate-700 font-bold">जमा राशि (Amount Paid):</span>
+            <strong id="rcptAmount" class="text-brand-700 text-base">₹1,000 /-</strong>
+          </div>
+        </div>
+
+        <div class="flex justify-between items-end pt-4 border-t border-dashed border-slate-200 text-xs">
+          <div>
+            <p class="text-[10px] text-emerald-600 font-bold">✓ कंप्यूटर जनरेटेड रसीद</p>
+            <p class="text-[9px] text-slate-400">Krishna Library Digital Portal</p>
+          </div>
+          <div class="text-center">
+            <div class="h-8 flex items-center justify-center font-hindi text-brand-600 font-bold text-sm">कमल</div>
+            <p class="text-[10px] text-slate-500 font-semibold border-t border-slate-300 pt-0.5">अधिकृत हस्ताक्षर</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons (Hidden when printing) -->
+      <div class="p-4 bg-slate-50 border-t border-slate-100 flex flex-wrap gap-2 justify-end no-print">
+        <button onclick="window.print()" class="px-4 py-2 bg-slate-800 hover:bg-black text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow">
+          <i class="fa-solid fa-print"></i> प्रिंट करें / PDF
+        </button>
+        <button id="rcptWhatsappBtn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow">
+          <i class="fa-brands fa-whatsapp text-sm"></i> WhatsApp पर भेजें
+        </button>
+        <button onclick="document.getElementById('receiptModal').classList.add('hidden')" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl">
+          बंद करें
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= SEAT DETAIL MODAL ================= -->
+  <div id="seatModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl">
+      <div class="flex justify-between items-center pb-3 border-b border-slate-100 mb-3">
+        <h4 id="seatModalTitle" class="font-extrabold text-slate-800 text-base">Seat #12 Details</h4>
+        <button onclick="document.getElementById('seatModal').classList.remove('flex'); document.getElementById('seatModal').classList.add('hidden');" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div id="seatModalContent" class="text-xs space-y-2 mb-4">
+        <!-- Filled dynamically -->
+      </div>
+      <div id="seatModalActions" class="flex gap-2">
+        <!-- Actions -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= JAVASCRIPT LOGIC ================= -->
+  <script>
+    const INITIAL_MEMBERS = [
+      { id: 'KL-0248', name: 'Aarav Sharma', phone: '9812345678', seatNo: 12, exam: 'SSC CGL 2025', shift: 'Full Day', plan: 'Full Day (₹1,000)', amount: 1000, feeStatus: 'Paid', dueDate: '30 June 2026', paymentMode: 'UPI (GPay)' },
+      { id: 'KL-0102', name: 'Vikram Singh', phone: '9416011223', seatNo: 2, exam: 'UPSC Civil Services 2026', shift: 'Full Day', plan: 'Full Day (₹1,000)', amount: 1000, feeStatus: 'Paid', dueDate: '15 July 2026', paymentMode: 'Net Banking' },
+      { id: 'KL-0104', name: 'Priya Verma', phone: '9896099887', seatNo: 4, exam: 'Banking PO (IBPS)', shift: 'Half Day Morning', plan: 'Half Day Morning (₹700)', amount: 700, feeStatus: 'Paid', dueDate: '25 April 2026', paymentMode: 'UPI (PhonePe)' },
+      { id: 'KL-0106', name: 'Rohit Kumar', phone: '9812033445', seatNo: 6, exam: 'Haryana CET', shift: 'Full Day', plan: 'Full Day (₹1,000)', amount: 1000, feeStatus: 'Paid', dueDate: '10 May 2026', paymentMode: 'Cash' },
+      { id: 'KL-0108', name: 'Anjali Sharma', phone: '9467055667', seatNo: 8, exam: 'NEET-UG', shift: 'Half Day Evening', plan: 'Half Day Evening (₹700)', amount: 700, feeStatus: 'Paid', dueDate: '20 May 2026', paymentMode: 'UPI' },
+      { id: 'KL-0110', name: 'Deepak Saini', phone: '9813077889', seatNo: 10, exam: 'NDA / CDS', shift: 'Full Day', plan: 'Full Day (₹1,000)', amount: 1000, feeStatus: 'Pending', dueDate: '05 June 2026', paymentMode: 'Cash' },
+      { id: 'KL-0114', name: 'Pooja Rani', phone: '9896122334', seatNo: 14, exam: 'UGC NET', shift: 'Half Day Morning', plan: 'Half Day Morning (₹700)', amount: 700, feeStatus: 'Paid', dueDate: '18 June 2026', paymentMode: 'UPI' },
+      { id: 'KL-0115', name: 'Rahul Bishnoi', phone: '9728044556', seatNo: 15, exam: 'SSC CHSL', shift: 'Full Day', plan: 'Full Day (₹1,000)', amount: 1000, feeStatus: 'Pending', dueDate: '01 July 2026', paymentMode: 'UPI' },
+      { id: 'KL-0116', name: 'Simran Kaur', phone: '9896588990', seatNo: 16, exam: 'CA Inter', shift: 'Full Day', plan: 'Full Day (₹1,000)', amount: 1000, feeStatus: 'Paid', dueDate: '15 Aug 2026', paymentMode: 'UPI (PhonePe)' },
+      { id: 'KL-0118', name: 'Amit Punia', phone: '9729012345', seatNo: 18, exam: 'CDS / AFCAT', shift: 'Half Day Evening', plan: 'Half Day Evening (₹700)', amount: 700, feeStatus: 'Paid', dueDate: '02 May 2026', paymentMode: 'Cash' },
+      { id: 'KL-0121', name: 'Kavita Joshi', phone: '9812567890', seatNo: 21, exam: 'CTET / HTET', shift: 'Half Day Morning', plan: 'Half Day Morning (₹700)', amount: 700, feeStatus: 'Paid', dueDate: '12 June 2026', paymentMode: 'UPI' },
+      { id: 'KL-0124', name: 'Sachin Tanwar', phone: '9416578901', seatNo: 24, exam: 'Railway RRB NTPC', shift: 'Full Day', plan: 'Full Day (₹1,000)', amount: 1000, feeStatus: 'Paid', dueDate: '28 July 2026', paymentMode: 'Cash' }
+    ];
+
+    class LibraryApp {
+      constructor() {
+        this.currentRole = 'admin';
+        this.loggedInUser = null;
+        this.members = JSON.parse(localStorage.getItem('krishna_members')) || INITIAL_MEMBERS;
+        this.saveMembers();
+        this.init();
+      }
+
+      saveMembers() {
+        localStorage.setItem('krishna_members', JSON.stringify(this.members));
+      }
+
+      init() {
+        this.renderSeats();
+        this.renderMembersTable();
+        this.updateStats();
+        this.populateAvailableSeats();
+        this.renderReceiptsGrid();
+      }
+
+      switchLoginRole(role) {
+        this.currentRole = role;
+        const adminBtn = document.getElementById('adminTabBtn');
+        const studentBtn = document.getElementById('studentTabBtn');
+        const idLabel = document.getElementById('idLabel');
+        const loginId = document.getElementById('loginId');
+
+        if (role === 'admin') {
+          adminBtn.className = 'flex-1 py-2 rounded-lg bg-white shadow-sm text-brand-700 flex items-center justify-center gap-2 transition';
+          studentBtn.className = 'flex-1 py-2 rounded-lg text-slate-500 hover:text-slate-700 flex items-center justify-center gap-2 transition';
+          idLabel.innerText = 'एडमिन ID / यूजरनेम';
+          loginId.placeholder = 'admin या kamal';
+          loginId.value = 'admin';
+        } else {
+          studentBtn.className = 'flex-1 py-2 rounded-lg bg-white shadow-sm text-brand-700 flex items-center justify-center gap-2 transition';
+          adminBtn.className = 'flex-1 py-2 rounded-lg text-slate-500 hover:text-slate-700 flex items-center justify-center gap-2 transition';
+          idLabel.innerText = 'मेंबर ID या मोबाइल नंबर';
+          loginId.placeholder = 'उदा. KL-0248 या 9812345678';
+          loginId.value = 'KL-0248';
+        }
+      }
+
+      fillDemo(type) {
+        if (type === 'admin') {
+          this.switchLoginRole('admin');
+          document.getElementById('loginId').value = 'admin';
+          document.getElementById('loginPin').value = '1234';
+        } else {
+          this.switchLoginRole('student');
+          document.getElementById('loginId').value = 'KL-0248';
+          document.getElementById('loginPin').value = '1234';
+        }
+        this.handleLogin();
+      }
+
+      handleLogin() {
+        const id = document.getElementById('loginId').value.trim().toLowerCase();
+        const pin = document.getElementById('loginPin').value.trim();
+        const err = document.getElementById('loginError');
+
+        if (this.currentRole === 'admin') {
+          if (id === 'admin' || id === 'kamal' || id === 'kl-01') {
+            this.showView('admin', { name: 'कमल (संचालक)' });
+            err.classList.add('hidden');
+          } else {
+            err.classList.remove('hidden');
+            document.getElementById('loginErrorText').innerText = 'अमान्य एडमिन ID!';
+          }
+        } else {
+          const cleanPhone = id.replace(/\D/g, '');
+          const student = this.members.find(m => m.id.toLowerCase() === id || m.phone.replace(/\D/g, '').includes(cleanPhone));
+          if (student) {
+            this.showView('student', student);
+            err.classList.add('hidden');
+          } else {
+            err.classList.remove('hidden');
+            document.getElementById('loginErrorText').innerText = 'मेंबर ID या मोबाइल नंबर नहीं मिला!';
+          }
+        }
+      }
+
+      showView(type, user) {
+        this.loggedInUser = user;
+        document.getElementById('loginView').classList.add('hidden');
+        document.getElementById('userBadge').classList.remove('hidden');
+        document.getElementById('logoutBtn').classList.remove('hidden');
+        document.getElementById('userName').innerText = user.name;
+
+        if (type === 'admin') {
+          document.getElementById('adminView').classList.remove('hidden');
+          document.getElementById('studentView').classList.add('hidden');
+          this.setAdminTab('seats');
+        } else {
+          document.getElementById('studentView').classList.remove('hidden');
+          document.getElementById('adminView').classList.add('hidden');
+          this.setupStudentView(user);
+        }
+      }
+
+      logout() {
+        this.loggedInUser = null;
+        document.getElementById('loginView').classList.remove('hidden');
+        document.getElementById('adminView').classList.add('hidden');
+        document.getElementById('studentView').classList.add('hidden');
+        document.getElementById('userBadge').classList.add('hidden');
+        document.getElementById('logoutBtn').classList.add('hidden');
+      }
+
+      setAdminTab(tab) {
+        const tabs = ['seats', 'members', 'add', 'receipts'];
+        tabs.forEach(t => {
+          const cap = t.charAt(0).toUpperCase() + t.slice(1);
+          const btn = document.getElementById('tabBtn' + cap);
+          const sec = document.getElementById('admin' + cap + 'Section');
+          if (t === tab) {
+            btn.className = 'px-4 py-2 rounded-xl bg-brand-500 text-white shadow-sm flex items-center gap-2 transition';
+            sec.classList.remove('hidden');
+          } else {
+            btn.className = 'px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 flex items-center gap-2 transition';
+            sec.classList.add('hidden');
+          }
+        });
+      }
+
+      renderSeats() {
+        const container = document.getElementById('seatsContainer');
+        container.innerHTML = '';
+
+        for (let i = 1; i <= 50; i++) {
+          const member = this.members.find(m => m.seatNo === i);
+          let bgClass = 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100';
+          let badge = 'fa-chair';
+
+          if (member) {
+            if (member.shift.includes('Full Day')) {
+              bgClass = 'bg-red-500 border-red-600 text-white shadow-sm hover:bg-red-600';
+            } else {
+              bgClass = 'bg-amber-400 border-amber-500 text-white shadow-sm hover:bg-amber-500';
+            }
+          }
+
+          const seatBtn = document.createElement('button');
+          seatBtn.className = `p-2 rounded-xl border flex flex-col items-center justify-center font-bold text-xs transition active:scale-95 ${bgClass}`;
+          seatBtn.innerHTML = `
+            <span class="text-[10px] opacity-80">S</span>
+            <span class="text-sm leading-tight">${i < 10 ? '0' + i : i}</span>
+          `;
+          seatBtn.onclick = () => this.showSeatDetails(i, member);
+          container.appendChild(seatBtn);
+        }
+      }
+
+      showSeatDetails(seatNo, member) {
+        const modal = document.getElementById('seatModal');
+        const title = document.getElementById('seatModalTitle');
+        const content = document.getElementById('seatModalContent');
+        const actions = document.getElementById('seatModalActions');
+
+        title.innerText = `सीट #${seatNo < 10 ? '0' + seatNo : seatNo} विवरण`;
+
+        if (member) {
+          content.innerHTML = `
+            <div class="p-3 rounded-xl bg-slate-50 space-y-1.5 border border-slate-100">
+              <p><span class="text-slate-400">छात्र:</span> <strong class="text-slate-800 text-sm">${member.name}</strong></p>
+              <p><span class="text-slate-400">ID:</span> <strong class="text-brand-500">${member.id}</strong></p>
+              <p><span class="text-slate-400">मोबाइल:</span> <strong>${member.phone}</strong></p>
+              <p><span class="text-slate-400">शिफ्ट:</span> <strong>${member.shift}</strong></p>
+              <p><span class="text-slate-400">फीस स्थिति:</span> <span class="px-2 py-0.5 rounded text-[10px] font-bold ${member.feeStatus === 'Paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">${member.feeStatus}</span></p>
+              <p><span class="text-slate-400">अंतिम तिथि:</span> <strong>${member.dueDate}</strong></p>
+            </div>
+          `;
+          actions.innerHTML = `
+            <button onclick="app.openReceipt('${member.id}')" class="flex-1 py-2 bg-brand-500 text-white rounded-xl font-bold text-xs">
+              रसीद देखें
+            </button>
+            <button onclick="app.vacateSeat(${seatNo})" class="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-xl font-bold text-xs">
+              सीट खाली करें
+            </button>
+          `;
+        } else {
+          content.innerHTML = `
+            <div class="p-4 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-center">
+              <i class="fa-solid fa-circle-check text-2xl mb-1 text-emerald-600"></i>
+              <p class="font-bold">यह सीट अभी खाली है!</p>
+              <p class="text-[11px] text-emerald-700 mt-0.5">नया छात्र जोड़ने के लिए नीचे क्लिक करें।</p>
+            </div>
+          `;
+          actions.innerHTML = `
+            <button onclick="app.quickBookSeat(${seatNo})" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs">
+              इस सीट पर नया एडमिशन करें
+            </button>
+          `;
+        }
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+
+      quickBookSeat(seatNo) {
+        document.getElementById('seatModal').classList.add('hidden');
+        document.getElementById('seatModal').classList.remove('flex');
+        this.setAdminTab('add');
+        document.getElementById('newStudentSeat').value = seatNo;
+      }
+
+      vacateSeat(seatNo) {
+        if (confirm(`क्या आप वाकई सीट #${seatNo} खाली करना चाहते हैं?`)) {
+          this.members = this.members.filter(m => m.seatNo !== seatNo);
+          this.saveMembers();
+          this.init();
+          document.getElementById('seatModal').classList.add('hidden');
+          document.getElementById('seatModal').classList.remove('flex');
+          alert(`सीट #${seatNo} खाली कर दी गई है!`);
+        }
+      }
+
+      renderMembersTable() {
+        const tbody = document.getElementById('membersTableBody');
+        tbody.innerHTML = '';
+
+        this.members.forEach(m => {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-50 transition';
+          tr.innerHTML = `
+            <td class="py-3 px-3">
+              <span class="w-7 h-7 rounded-lg bg-slate-100 border border-slate-200 font-bold flex items-center justify-center text-slate-700">
+                ${m.seatNo}
+              </span>
+            </td>
+            <td class="py-3 px-3">
+              <strong class="text-slate-800 block">${m.name}</strong>
+              <span class="text-[11px] text-brand-500 font-mono">${m.id}</span>
+            </td>
+            <td class="py-3 px-3 font-mono">${m.phone}</td>
+            <td class="py-3 px-3 text-slate-600">${m.exam}</td>
+            <td class="py-3 px-3">
+              <span class="font-semibold block">${m.shift}</span>
+              <span class="text-[10px] text-slate-400">₹${m.amount}/माह</span>
+            </td>
+            <td class="py-3 px-3">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${m.feeStatus === 'Paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">
+                ${m.feeStatus}
+              </span>
+            </td>
+            <td class="py-3 px-3 text-right">
+              <button onclick="app.openReceipt('${m.id}')" class="px-2.5 py-1.5 rounded-lg bg-blue-50 text-brand-500 hover:bg-blue-100 font-bold text-[11px]">
+                रसीद
+              </button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      filterMembers() {
+        const query = document.getElementById('memberSearch').value.toLowerCase();
+        const shift = document.getElementById('shiftFilter').value;
+        const rows = document.querySelectorAll('#membersTableBody tr');
+
+        this.members.forEach((m, idx) => {
+          const matchQuery = m.name.toLowerCase().includes(query) || m.id.toLowerCase().includes(query) || m.phone.includes(query);
+          const matchShift = shift === 'all' || m.shift.includes(shift);
+          if (rows[idx]) {
+            rows[idx].style.display = (matchQuery && matchShift) ? '' : 'none';
+          }
+        });
+      }
+
+      populateAvailableSeats() {
+        const select = document.getElementById('newStudentSeat');
+        select.innerHTML = '';
+        const booked = this.members.map(m => m.seatNo);
+
+        for (let i = 1; i <= 50; i++) {
+          if (!booked.includes(i)) {
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.innerText = `सीट #${i < 10 ? '0' + i : i} (उपलब्ध)`;
+            select.appendChild(opt);
+          }
+        }
+      }
+
+      addNewMember() {
+        const name = document.getElementById('newStudentName').value.trim();
+        const phone = document.getElementById('newStudentPhone').value.trim();
+        const seatNo = parseInt(document.getElementById('newStudentSeat').value);
+        const plan = document.getElementById('newStudentPlan').value;
+        const exam = document.getElementById('newStudentExam').value.trim() || 'General Studies';
+        const feeStatus = document.getElementById('newStudentFeeStatus').value;
+        const paymentMode = document.getElementById('newStudentPaymentMode').value;
+
+        const nextIdNumber = this.members.length + 100;
+        const newId = `KL-${nextIdNumber < 1000 ? '0' + nextIdNumber : nextIdNumber}`;
+        const amount = plan.includes('1,000') ? 1000 : 700;
+        const shift = plan.includes('Full Day') ? 'Full Day' : (plan.includes('Morning') ? 'Half Day Morning' : 'Half Day Evening');
+
+        const newRecord = {
+          id: newId,
+          name,
+          phone,
+          seatNo,
+          exam,
+          shift,
+          plan,
+          amount,
+          feeStatus,
+          dueDate: '10 Dec 2026',
+          paymentMode
+        };
+
+        this.members.push(newRecord);
+        this.saveMembers();
+        this.init();
+
+        alert(`सफल! ${name} का एडमिशन हो गया है। सीट #${seatNo} अलॉट की गई।`);
+        this.setAdminTab('seats');
+        this.openReceipt(newId);
+      }
+
+      updateStats() {
+        const booked = this.members.length;
+        const avail = 50 - booked;
+        const totalFees = this.members.reduce((acc, m) => m.feeStatus === 'Paid' ? acc + m.amount : acc, 0);
+
+        document.getElementById('statBooked').innerText = booked;
+        document.getElementById('statAvailable').innerText = avail;
+        document.getElementById('statFees').innerText = `₹${totalFees.toLocaleString('en-IN')}`;
+      }
+
+      openReceipt(memberId) {
+        const m = this.members.find(x => x.id === memberId);
+        if (!m) return;
+
+        document.getElementById('rcptStudent').innerText = m.name;
+        document.getElementById('rcptId').innerText = m.id;
+        document.getElementById('rcptSeat').innerText = `Seat #${m.seatNo}`;
+        document.getElementById('rcptShift').innerText = m.shift;
+        document.getElementById('rcptMode').innerText = m.paymentMode;
+        document.getElementById('rcptAmount').innerText = `₹${m.amount} /-`;
+        document.getElementById('rcptNo').innerText = `KL-RCP-${m.seatNo}${Math.floor(100 + Math.random() * 900)}`;
+
+        const whatsappText = encodeURIComponent(`नमस्ते ${m.name},\nकृष्णा लाइब्रेरी में आपकी फीस रसीद:\nसीट नंबर: ${m.seatNo}\nराशि: ₹${m.amount}\nस्थिति: ${m.feeStatus}\nधन्यवाद! - कमल (कृष्णा लाइब्रेरी)`);
+        document.getElementById('rcptWhatsappBtn').onclick = () => {
+          window.open(`https://api.whatsapp.com/send?phone=91${m.phone}&text=${whatsappText}`, '_blank');
+        };
+
+        document.getElementById('receiptModal').classList.remove('hidden');
+      }
+
+      renderReceiptsGrid() {
+        const grid = document.getElementById('receiptsGrid');
+        grid.innerHTML = '';
+
+        this.members.forEach(m => {
+          const card = document.createElement('div');
+          card.className = 'p-4 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-between';
+          card.innerHTML = `
+            <div>
+              <strong class="text-slate-800 text-sm block">${m.name}</strong>
+              <span class="text-xs text-slate-500">Seat #${m.seatNo} • ₹${m.amount}</span>
+            </div>
+            <button onclick="app.openReceipt('${m.id}')" class="px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-lg font-bold text-xs">
+              रसीद प्रिंट
+            </button>
+          `;
+          grid.appendChild(card);
+        });
+      }
+
+      setupStudentView(user) {
+        document.getElementById('studentCardName').innerText = user.name;
+        document.getElementById('studentCardId').innerText = user.id;
+        document.getElementById('studentCardSeat').innerText = user.seatNo;
+        document.getElementById('studentCardDue').innerText = `${user.dueDate} तक`;
+
+        document.getElementById('idCardName').innerText = user.name;
+        document.getElementById('idCardId').innerText = user.id;
+        document.getElementById('idCardSeat').innerText = `Seat #${user.seatNo}`;
+        document.getElementById('idCardExam').innerText = user.exam;
+      }
+
+      setStudentTab(tab) {
+        const tabs = ['idcard', 'study', 'quiz', 'search'];
+        tabs.forEach(t => {
+          const cap = t.charAt(0).toUpperCase() + t.slice(1);
+          const btn = document.getElementById('sTabBtn' + cap);
+          const sec = document.getElementById('student' + cap + 'Section');
+          if (t === tab) {
+            btn.className = 'px-4 py-2 rounded-xl bg-brand-500 text-white shadow-sm flex items-center gap-2';
+            sec.classList.remove('hidden');
+          } else {
+            btn.className = 'px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 flex items-center gap-2';
+            sec.classList.add('hidden');
+          }
+        });
+      }
+
+      askAi() {
+        const q = document.getElementById('aiQuery').value.trim();
+        if (!q) return;
+        const res = document.getElementById('aiResponse');
+        res.classList.remove('hidden');
+        res.innerHTML = `
+          <div class="flex items-center gap-2 text-brand-600 font-bold mb-1">
+            <i class="fa-solid fa-sparkles"></i> उत्तर:
+          </div>
+          <p><strong>प्रश्न:</strong> "${q}"</p>
+          <p class="mt-2 text-slate-700">भारतीय इतिहास और संविधान के अनुसार, यह विषय प्रतियोगी परीक्षाओं (SSC / UPSC / State PCS) के लिए अत्यंत महत्वपूर्ण है। इससे जुड़े मुख्य बिंदु:</p>
+          <ul class="list-disc ml-4 mt-1.5 space-y-1">
+            <li>परीक्षा में अक्सर इससे सीधे 1-2 प्रश्न पूछे जाते हैं।</li>
+            <li>रिवीजन के लिए लाइब्रेरी में उपलब्ध सामान्य ज्ञान नोट्स का अध्याय-4 देखें।</li>
+          </ul>
+        `;
+      }
+    }
+
+    const app = new LibraryApp();
+  </script>
+</body>
+</html>
